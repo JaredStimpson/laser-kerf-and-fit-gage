@@ -8,6 +8,15 @@ import laser_tester_generator as ltg
 
 
 class ExportTests(unittest.TestCase):
+    def test_gui_field_groups_cover_all_parameters(self):
+        kerf_grouped = ltg.KERF_GENERAL_FIELDS + ltg.KERF_ADVANCED_FIELDS
+        fit_grouped = ltg.FIT_GENERAL_FIELDS + ltg.FIT_ADVANCED_FIELDS
+
+        self.assertEqual(len(kerf_grouped), len(set(kerf_grouped)))
+        self.assertEqual(len(fit_grouped), len(set(fit_grouped)))
+        self.assertEqual({field.name for field in ltg.fields(ltg.KerfParams)}, set(kerf_grouped))
+        self.assertEqual({field.name for field in ltg.fields(ltg.FitParams)}, set(fit_grouped))
+
     def test_sample_exports_are_parseable(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = Path(tmp)

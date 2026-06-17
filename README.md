@@ -9,6 +9,12 @@ The app has two separate tools:
 
 The point is to keep machine/process kerf separate from desired mechanical fit allowance. Use the kerf tester to dial in your laser/process compensation first, then use the fit allowance tester to choose the intentional clearance or interference you want in real parts.
 
+Each tool screen has:
+
+- A live preview pane showing the geometry that will be generated
+- A `General` tab for the controls used most often
+- An `Advanced` tab for less-common placement, tick, label, and strip layout dimensions
+
 ## Windows Quick Start
 
 From the repo root:

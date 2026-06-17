@@ -140,6 +140,49 @@ FIT_FIELD_LABELS = {
 }
 
 
+KERF_GENERAL_FIELDS = [
+    "outer_width",
+    "outer_height",
+    "cutout_width",
+    "cutout_height",
+    "gap_scale_range",
+    "gap_scale_increment",
+    "include_labels",
+]
+
+
+KERF_ADVANCED_FIELDS = [
+    "cutout_x",
+    "cutout_y",
+    "major_tick_increment",
+    "scale_offset",
+    "minor_tick_length",
+    "major_tick_length",
+    "label_size",
+]
+
+
+FIT_GENERAL_FIELDS = [
+    "nominal_tab_width",
+    "tab_height",
+    "slot_depth",
+    "allowance_start",
+    "allowance_stop",
+    "allowance_step",
+    "include_labels",
+]
+
+
+FIT_ADVANCED_FIELDS = [
+    "shoulder_width",
+    "body_height",
+    "strip_height",
+    "strip_margin",
+    "slot_spacing",
+    "label_size",
+]
+
+
 def rect(x: float, y: float, width: float, height: float, layer: str = "CUT") -> Polyline:
     return Polyline(
         [
@@ -560,25 +603,57 @@ def launch_gui() -> None:
     from tkinter import filedialog, messagebox, ttk
 
     class ParameterForm(ttk.Frame):
-        def __init__(self, parent: tk.Widget, cls: type[Any], labels: dict[str, str]) -> None:
+        def __init__(
+            self,
+            parent: tk.Widget,
+            cls: type[Any],
+            labels: dict[str, str],
+            general_fields: list[str],
+            advanced_fields: list[str],
+        ) -> None:
             super().__init__(parent)
             self.cls = cls
             self.vars: dict[str, tk.Variable] = {}
-            for row, field in enumerate(fields(cls)):
+            self.field_map = {field.name: field for field in fields(cls)}
+
+            tabs = ttk.Notebook(self)
+            tabs.pack(fill="both", expand=True)
+
+            general_frame = ttk.Frame(tabs, padding=(8, 10))
+            advanced_frame = ttk.Frame(tabs, padding=(8, 10))
+            tabs.add(general_frame, text="General")
+            tabs.add(advanced_frame, text="Advanced")
+
+            self._add_fields(general_frame, general_fields, labels)
+            self._add_fields(advanced_frame, advanced_fields, labels)
+
+        def _add_fields(self, parent: ttk.Frame, field_names: list[str], labels: dict[str, str]) -> None:
+            defaults = self.cls()
+            for row, field_name in enumerate(field_names):
+                field = self.field_map[field_name]
                 label_text = labels.get(field.name, field.name)
-                ttk.Label(self, text=label_text).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
-                default_value = getattr(cls(), field.name)
+                ttk.Label(parent, text=label_text).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
+                default_value = getattr(defaults, field.name)
                 if isinstance(default_value, bool):
                     var = tk.BooleanVar(value=default_value)
-                    ttk.Checkbutton(self, variable=var).grid(row=row, column=1, sticky="w", pady=3)
+                    ttk.Checkbutton(parent, variable=var, command=self._notify_changed).grid(
+                        row=row,
+                        column=1,
+                        sticky="w",
+                        pady=3,
+                    )
                 else:
                     var = tk.StringVar(value=str(default_value))
-                    entry = ttk.Entry(self, textvariable=var, width=14)
+                    entry = ttk.Entry(parent, textvariable=var, width=14)
                     entry.grid(row=row, column=1, sticky="ew", pady=3)
-                    entry.bind("<Return>", lambda _event: self.winfo_toplevel().event_generate("<<ParamsChanged>>"))
-                    entry.bind("<FocusOut>", lambda _event: self.winfo_toplevel().event_generate("<<ParamsChanged>>"))
+                    entry.bind("<KeyRelease>", lambda _event: self._notify_changed())
+                    entry.bind("<Return>", lambda _event: self._notify_changed())
+                    entry.bind("<FocusOut>", lambda _event: self._notify_changed())
                 self.vars[field.name] = var
-            self.columnconfigure(1, weight=1)
+            parent.columnconfigure(1, weight=1)
+
+        def _notify_changed(self) -> None:
+            self.winfo_toplevel().event_generate("<<ParamsChanged>>")
 
         def get(self) -> Any:
             values: dict[str, Any] = {}
@@ -622,11 +697,15 @@ def launch_gui() -> None:
                 "Kerf / Cutter Compensation",
                 KerfParams,
                 KERF_FIELD_LABELS,
+                KERF_GENERAL_FIELDS,
+                KERF_ADVANCED_FIELDS,
             )
             self.fit_form, self.fit_canvas = self._build_tab(
                 "Fit Allowance",
                 FitParams,
                 FIT_FIELD_LABELS,
+                FIT_GENERAL_FIELDS,
+                FIT_ADVANCED_FIELDS,
             )
 
             self.notebook.bind("<<NotebookTabChanged>>", lambda _event: self.preview_active())
@@ -638,6 +717,8 @@ def launch_gui() -> None:
             title: str,
             cls: type[Any],
             labels: dict[str, str],
+            general_fields: list[str],
+            advanced_fields: list[str],
         ) -> tuple[ParameterForm, tk.Canvas]:
             tab = ttk.Frame(self.notebook)
             self.notebook.add(tab, text=title)
@@ -651,8 +732,8 @@ def launch_gui() -> None:
             paned.add(preview, weight=1)
 
             ttk.Label(controls, text=title, style="Title.TLabel").pack(anchor="w", pady=(0, 10))
-            form = ParameterForm(controls, cls, labels)
-            form.pack(fill="x")
+            form = ParameterForm(controls, cls, labels, general_fields, advanced_fields)
+            form.pack(fill="both", expand=True)
 
             button_grid = ttk.Frame(controls)
             button_grid.pack(fill="x", pady=(14, 0))
@@ -676,6 +757,7 @@ def launch_gui() -> None:
                 foreground="#555555",
             ).pack(anchor="w", pady=(14, 0))
 
+            ttk.Label(preview, text="Preview", style="Title.TLabel").pack(anchor="w", pady=(0, 8))
             canvas = tk.Canvas(preview, bg="white", highlightthickness=1, highlightbackground="#c8c8c8")
             canvas.pack(fill="both", expand=True)
             canvas.bind("<Configure>", lambda _event: self.preview_active())
