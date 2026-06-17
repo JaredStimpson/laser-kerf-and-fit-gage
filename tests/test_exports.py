@@ -85,25 +85,28 @@ class ExportTests(unittest.TestCase):
         self.assertNotIn("D", text_values)
         self.assertNotIn("E", text_values)
         self.assertIn("Kerf offset = D.E / 40", text_values)
-        self.assertEqual(len(cut_lines), int(params.piece_count) - 1)
+        self.assertGreaterEqual(len(cut_lines), int(params.piece_count) + 5)
         self.assertGreaterEqual(len(mark_lines), int(params.scale_units) + int(params.vernier_divisions) + 2)
 
-    def test_kerf_discard_bay_aligns_with_piece_grid(self):
+    def test_kerf_discard_and_slider_follow_reference_geometry(self):
         params = ltg.KerfParams()
         layout = ltg.kerf_layout(params)
         drawing = ltg.generate_kerf(params)
-        cut_polylines = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline) and entity.layer == "CUT"]
         cut_lines = [entity for entity in drawing.entities if isinstance(entity, ltg.Line) and entity.layer == "CUT"]
 
-        top_row = cut_polylines[1]
-        slide_channel = cut_polylines[2]
-        discard_bay = cut_polylines[3]
+        def has_line(start, end):
+            return any(
+                abs(line.start[0] - start[0]) < 0.00001
+                and abs(line.start[1] - start[1]) < 0.00001
+                and abs(line.end[0] - end[0]) < 0.00001
+                and abs(line.end[1] - end[1]) < 0.00001
+                for line in cut_lines
+            )
 
-        self.assertAlmostEqual(top_row.points[0][0], layout["track_x"])
-        self.assertAlmostEqual(top_row.points[1][0], layout["inner_right"])
-        self.assertAlmostEqual(slide_channel.points[1][0], layout["discard_x"])
-        self.assertAlmostEqual(discard_bay.points[0][0], layout["discard_x"])
-        self.assertAlmostEqual(discard_bay.points[1][0], layout["inner_right"])
+        self.assertTrue(has_line((layout["track_x"], layout["track_y"]), (layout["inner_right"], layout["track_y"])))
+        self.assertTrue(has_line((layout["track_x"], layout["row_bottom"]), (layout["inner_right"], layout["row_bottom"])))
+        self.assertTrue(has_line((layout["inner_right"], layout["track_bottom"]), (layout["track_x"], layout["track_bottom"])))
+        self.assertTrue(has_line((layout["nose_x"], layout["row_bottom"]), (layout["discard_x"], layout["track_bottom"])))
         self.assertAlmostEqual(
             layout["discard_width"],
             layout["discard_piece_count"] * layout["cell_width"],
@@ -112,6 +115,8 @@ class ExportTests(unittest.TestCase):
             any(abs(line.start[0] - layout["discard_x"]) < 0.00001 for line in cut_lines),
             "Discard boundary should align with a top-row piece boundary.",
         )
+        self.assertAlmostEqual(layout["top_scale_end"] - layout["track_x"], params.scale_units * params.scale_tick_spacing)
+        self.assertAlmostEqual(layout["vernier_length"], layout["scale_length"])
 
 
 if __name__ == "__main__":

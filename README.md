@@ -86,7 +86,7 @@ Documents\Laser Tester Generator Exports
 
 The kerf tester draws a Vernier-style kerf offset finder. It has a row of loose sliding pieces, a lower slide channel, a right-hand `DISCARD` tab, a top `D` scale, and a bottom `E` vernier scale.
 
-The lower `DISCARD` bay is sized in whole top-row piece widths, so its left edge always lines up with a cut line in the loose-piece row.
+The `DISCARD` clearance is sized in whole top-row piece widths, and the slider end uses a diagonal nose cut so the slider has room to move right after the discard piece is removed.
 
 Suggested use:
 

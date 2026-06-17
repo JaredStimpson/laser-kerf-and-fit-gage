@@ -108,9 +108,9 @@ class FitParams:
 KERF_FIELD_LABELS = {
     "plate_width": "Plate width (mm)",
     "plate_height": "Plate height (mm)",
-    "scale_units": "D scale max value",
-    "scale_tick_spacing": "D tick spacing (mm)",
-    "vernier_divisions": "E vernier divisions",
+    "scale_units": "Coarse scale max value",
+    "scale_tick_spacing": "Coarse tick spacing (mm)",
+    "vernier_divisions": "Vernier divisions",
     "piece_count": "Top-row piece count",
     "pass_count": "Equation denominator",
     "discard_piece_count": "Discard bay pieces",
@@ -186,9 +186,9 @@ FIT_ADVANCED_FIELDS = [
 FIELD_HELP = {
     "plate_width": "Overall left-to-right size of the kerf finder plate.",
     "plate_height": "Overall top-to-bottom size of the kerf finder plate.",
-    "scale_units": "Largest whole-number value printed on the top D scale.",
-    "scale_tick_spacing": "Physical spacing between neighboring whole-number D ticks.",
-    "vernier_divisions": "Number of bottom E scale divisions used to read the decimal digit.",
+    "scale_units": "Largest whole-number value printed on the top coarse scale.",
+    "scale_tick_spacing": "Physical spacing between neighboring coarse scale ticks.",
+    "vernier_divisions": "Number of bottom vernier scale divisions engraved on the slider.",
     "piece_count": "Number of equal-width loose rectangular pieces in the top row.",
     "pass_count": "Denominator printed in the offset equation. Default 40 matches the reference style.",
     "discard_piece_count": "Number of top-row piece widths used by the lower DISCARD bay.",
@@ -254,8 +254,8 @@ def rounded_int(name: str, value: float, minimum: int = 1) -> int:
 def kerf_layout(params: KerfParams) -> dict[str, float]:
     ensure_positive("Plate width", params.plate_width)
     ensure_positive("Plate height", params.plate_height)
-    ensure_positive("D scale max value", params.scale_units)
-    ensure_positive("D tick spacing", params.scale_tick_spacing)
+    ensure_positive("Coarse scale max value", params.scale_units)
+    ensure_positive("Coarse tick spacing", params.scale_tick_spacing)
     ensure_positive("Equation denominator", params.pass_count)
     ensure_positive("Outer margin", params.margin)
     ensure_positive("Gauge track height", params.track_height)
@@ -263,8 +263,8 @@ def kerf_layout(params: KerfParams) -> dict[str, float]:
     ensure_positive("Label text height", params.label_size)
     ensure_positive("Scale text height", params.tick_label_size)
 
-    scale_units = rounded_int("D scale max value", params.scale_units, minimum=5)
-    vernier_divisions = rounded_int("E vernier divisions", params.vernier_divisions, minimum=5)
+    scale_units = rounded_int("Coarse scale max value", params.scale_units, minimum=5)
+    vernier_divisions = rounded_int("Vernier divisions", params.vernier_divisions, minimum=5)
     piece_count = rounded_int("Top-row piece count", params.piece_count, minimum=4)
     discard_piece_count = rounded_int("Discard bay pieces", params.discard_piece_count, minimum=1)
     if discard_piece_count >= piece_count:
@@ -284,9 +284,11 @@ def kerf_layout(params: KerfParams) -> dict[str, float]:
     cell_width = row_width / piece_count
     discard_width = discard_piece_count * cell_width
     discard_x = inner_right - discard_width
+    nose_x = max(track_x + cell_width, discard_x - cell_width)
     slide_width = discard_x - track_x
+    scale_length = scale_units * params.scale_tick_spacing
     top_scale_end = track_x + scale_units * params.scale_tick_spacing
-    vernier_length = scale_units * params.scale_tick_spacing * 0.92
+    vernier_length = scale_length
 
     if track_bottom + 4.5 > plate_bottom - 0.5:
         raise ValueError("Plate height is too small for the track, scales, and labels.")
@@ -295,7 +297,9 @@ def kerf_layout(params: KerfParams) -> dict[str, float]:
     if slide_width < row_width * 0.5:
         raise ValueError("Discard bay is too wide. Reduce discard bay pieces or increase piece count.")
     if top_scale_end > inner_right - 2.0:
-        raise ValueError("D scale is too long for the plate. Reduce scale max or tick spacing.")
+        raise ValueError("Coarse scale is too long for the plate. Reduce scale max or tick spacing.")
+    if nose_x <= track_x or nose_x >= discard_x:
+        raise ValueError("Discard bay needs at least one full top-row piece for the slider nose.")
 
     return {
         "scale_units": float(scale_units),
@@ -310,10 +314,12 @@ def kerf_layout(params: KerfParams) -> dict[str, float]:
         "slide_bottom": track_bottom,
         "inner_right": inner_right,
         "discard_x": discard_x,
+        "nose_x": nose_x,
         "row_width": row_width,
         "slide_width": slide_width,
         "discard_width": discard_width,
         "cell_width": cell_width,
+        "scale_length": scale_length,
         "top_scale_end": top_scale_end,
         "vernier_length": vernier_length,
     }
@@ -330,14 +336,20 @@ def generate_kerf(params: KerfParams) -> Drawing:
     track_bottom = layout["track_bottom"]
     discard_x = layout["discard_x"]
     inner_right = layout["inner_right"]
+    nose_x = layout["nose_x"]
     cell_width = layout["cell_width"]
 
-    entities: list[Entity] = [
-        rect(0, 0, params.plate_width, params.plate_height),
-        rect(track_x, track_y, inner_right - track_x, layout["row_height"]),
-        rect(track_x, row_bottom, discard_x - track_x, params.slide_height),
-        rect(discard_x, row_bottom, inner_right - discard_x, params.slide_height),
-    ]
+    entities: list[Entity] = [rect(0, 0, params.plate_width, params.plate_height)]
+
+    def add_cut(start: Point, end: Point) -> None:
+        entities.append(Line(start, end, layer="CUT"))
+
+    add_cut((track_x, track_y), (inner_right, track_y))
+    add_cut((inner_right, track_y), (inner_right, track_bottom))
+    add_cut((inner_right, track_bottom), (track_x, track_bottom))
+    add_cut((track_x, track_bottom), (track_x, track_y))
+    add_cut((track_x, row_bottom), (inner_right, row_bottom))
+    add_cut((nose_x, row_bottom), (discard_x, track_bottom))
 
     for index in range(1, piece_count):
         x = track_x + index * cell_width
@@ -1194,6 +1206,8 @@ def launch_gui() -> None:
             row_bottom = layout["row_bottom"]
             track_bottom = layout["track_bottom"]
             discard_x = layout["discard_x"]
+            inner_right = layout["inner_right"]
+            nose_x = layout["nose_x"]
             if field_name == "plate_width":
                 line((0, -2.5), (params.plate_width, -2.5), preferred="below")
             elif field_name == "plate_height":
@@ -1205,11 +1219,11 @@ def launch_gui() -> None:
             elif field_name == "vernier_divisions":
                 line((track_x, track_bottom + 7.0), (track_x + layout["vernier_length"], track_bottom + 7.0), preferred="above")
             elif field_name == "piece_count":
-                box(track_x, track_y, discard_x - track_x, layout["row_height"], preferred="inside")
+                box(track_x, track_y, inner_right - track_x, layout["row_height"], preferred="inside")
             elif field_name == "pass_count":
                 box(params.plate_width - params.margin - 50.0, params.margin - 1.0, 47.0, params.tick_label_size + 3.0, preferred="below")
             elif field_name == "discard_piece_count":
-                box(discard_x, row_bottom, layout["discard_width"], params.slide_height, preferred="below")
+                box(nose_x, row_bottom, inner_right - nose_x, params.slide_height, preferred="below")
             elif field_name == "margin":
                 line((0, params.plate_height / 2), (params.margin, params.plate_height / 2), preferred="below")
             elif field_name == "track_height":

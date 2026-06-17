@@ -3,9 +3,12 @@
   <title>vernier-kerf-offset-test</title>
   <g fill="none" stroke-linecap="square" stroke-linejoin="miter">
     <path d="M 0 0 L 160 0 L 160 44 L 0 44 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 14 14 L 154 14 L 154 27 L 14 27 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 14 27 L 133 27 L 133 34 L 14 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 133 27 L 154 27 L 154 34 L 133 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
+    <line x1="14" y1="14" x2="154" y2="14" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="154" y1="14" x2="154" y2="34" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="154" y1="34" x2="14" y2="34" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="14" y1="34" x2="14" y2="14" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="14" y1="27" x2="154" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="126" y1="27" x2="133" y2="34" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
     <line x1="21" y1="14" x2="21" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
     <line x1="28" y1="14" x2="28" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
     <line x1="35" y1="14" x2="35" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
@@ -47,30 +50,30 @@
     <text x="44" y="9.2" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">15</text>
     <line x1="14" y1="34" x2="14" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <text x="14" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">0</text>
-    <line x1="15.38" y1="34" x2="15.38" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="16.76" y1="34" x2="16.76" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="18.14" y1="34" x2="18.14" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="19.52" y1="34" x2="19.52" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="20.9" y1="34" x2="20.9" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <text x="20.9" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">5</text>
-    <line x1="22.28" y1="34" x2="22.28" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="23.66" y1="34" x2="23.66" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="25.04" y1="34" x2="25.04" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="26.42" y1="34" x2="26.42" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="27.8" y1="34" x2="27.8" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <text x="27.8" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">10</text>
-    <line x1="29.18" y1="34" x2="29.18" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="30.56" y1="34" x2="30.56" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="31.94" y1="34" x2="31.94" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="33.32" y1="34" x2="33.32" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="34.7" y1="34" x2="34.7" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <text x="34.7" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">15</text>
-    <line x1="36.08" y1="34" x2="36.08" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="37.46" y1="34" x2="37.46" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="38.84" y1="34" x2="38.84" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="40.22" y1="34" x2="40.22" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <line x1="41.6" y1="34" x2="41.6" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
-    <text x="41.6" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">20</text>
+    <line x1="15.5" y1="34" x2="15.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="17" y1="34" x2="17" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="18.5" y1="34" x2="18.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="20" y1="34" x2="20" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="21.5" y1="34" x2="21.5" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <text x="21.5" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">5</text>
+    <line x1="23" y1="34" x2="23" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="24.5" y1="34" x2="24.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="26" y1="34" x2="26" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="27.5" y1="34" x2="27.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="29" y1="34" x2="29" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <text x="29" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">10</text>
+    <line x1="30.5" y1="34" x2="30.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="32" y1="34" x2="32" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="33.5" y1="34" x2="33.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="35" y1="34" x2="35" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="36.5" y1="34" x2="36.5" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <text x="36.5" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">15</text>
+    <line x1="38" y1="34" x2="38" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="39.5" y1="34" x2="39.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="41" y1="34" x2="41" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="42.5" y1="34" x2="42.5" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="44" y1="34" x2="44" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <text x="44" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">20</text>
     <line x1="14" y1="30.5" x2="128" y2="30.5" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <text x="80" y="9" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">Vernier Kerf Offset Test</text>
     <text x="130" y="8" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">Kerf offset = D.E / 40</text>
