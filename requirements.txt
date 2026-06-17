@@ -1,0 +1,2 @@
+# Runtime intentionally uses only Python's standard library.
+# Tkinter must be available in the selected Python install.

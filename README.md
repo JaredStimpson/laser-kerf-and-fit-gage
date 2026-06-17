@@ -1,0 +1,105 @@
+# Laser Kerf And Fit Gage
+
+GUI-first Python desktop app for generating laser-cut calibration files for LightBurn and similar workflows.
+
+The app has two separate tools:
+
+- Kerf / cutter compensation tester
+- Fit allowance tester
+
+The point is to keep machine/process kerf separate from desired mechanical fit allowance. Use the kerf tester to dial in your laser/process compensation first, then use the fit allowance tester to choose the intentional clearance or interference you want in real parts.
+
+## Windows Quick Start
+
+From the repo root:
+
+```powershell
+.\setup.bat
+.\run.bat
+```
+
+The setup script creates a local `.venv`, verifies Python 3.10+, and checks that Tkinter is available. The run script always launches through `.venv\Scripts\python.exe`, so you do not have to double-click a file or guess which Python Windows will choose.
+
+If Python is not on PATH, pass it explicitly:
+
+```powershell
+.\setup.bat -Python "C:\Path\To\python.exe"
+```
+
+You can also set `PYTHON_EXE` before running setup/run/test:
+
+```powershell
+$env:PYTHON_EXE = "C:\Path\To\python.exe"
+.\setup.bat
+```
+
+Run tests with:
+
+```powershell
+.\test.bat
+```
+
+Generate sample SVG/DXF/JSON files without opening the GUI:
+
+```powershell
+.\run.bat --sample-dir samples
+```
+
+## Outputs
+
+Each tester can export:
+
+- SVG
+- DXF
+
+SVG files use a millimeter viewBox and simple strokes. DXF files use basic R12-compatible `LINE` and `TEXT` entities with `$INSUNITS` set to millimeters.
+
+Layers:
+
+- `CUT`: cut geometry
+- `MARK`: labels, scale ticks, and reference marks
+
+## Parameter Files
+
+Use `Save Params` and `Load Params` in the app. These are JSON parameter files, not generated output files.
+
+By default, parameter files are opened from:
+
+```text
+Documents\Laser Tester Generator Parameters
+```
+
+Generated output defaults to:
+
+```text
+Documents\Laser Tester Generator Exports
+```
+
+## Kerf Tester
+
+The kerf tester draws an outer reference plate with a rectangular coupon cutout and a fine gap scale near the cutout.
+
+Suggested use:
+
+1. Cut the tester with no intentional fit allowance.
+2. Remove the inner coupon.
+3. Slide the coupon against one side of its opening.
+4. Read the total gap on the engraved scale.
+5. Convert that reading into the kerf/cutter compensation value used by your laser workflow.
+
+For a coupon cut from its matching opening, the visible total gap is usually twice the per-side kerf effect for that axis. Confirm with your machine, cut direction, and LightBurn compensation settings.
+
+## Fit Allowance Tester
+
+The fit allowance tester draws:
+
+- A long strip with slots
+- One matching stepped male coupon
+
+Each slot width is:
+
+```text
+nominal tab width + allowance
+```
+
+The labels under the slots are allowance values in millimeters. Negative values make a tighter/interference fit. Positive values make a looser/clearance fit.

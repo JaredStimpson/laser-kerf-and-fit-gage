@@ -1,0 +1,36 @@
+{
+  "app": "laser-tester-generator",
+  "version": "0.1.0",
+  "units": "mm",
+  "kerf": {
+    "outer_width": 80.0,
+    "outer_height": 70.0,
+    "cutout_width": 52.0,
+    "cutout_height": 34.0,
+    "cutout_x": 10.0,
+    "cutout_y": 26.0,
+    "gap_scale_range": 2.0,
+    "gap_scale_increment": 0.1,
+    "major_tick_increment": 0.5,
+    "scale_offset": 4.0,
+    "minor_tick_length": 1.4,
+    "major_tick_length": 3.4,
+    "label_size": 2.2,
+    "include_labels": true
+  },
+  "fit": {
+    "nominal_tab_width": 20.0,
+    "tab_height": 24.0,
+    "shoulder_width": 8.0,
+    "body_height": 28.0,
+    "slot_depth": 28.0,
+    "allowance_start": -0.3,
+    "allowance_stop": 0.3,
+    "allowance_step": 0.1,
+    "strip_height": 44.0,
+    "strip_margin": 10.0,
+    "slot_spacing": 16.0,
+    "label_size": 2.4,
+    "include_labels": true
+  }
+}
