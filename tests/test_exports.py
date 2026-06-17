@@ -82,11 +82,36 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Vernier Kerf Offset Test", text_values)
         self.assertIn("SLIDE ->", text_values)
         self.assertIn("DISCARD", text_values)
-        self.assertIn("D", text_values)
-        self.assertIn("E", text_values)
+        self.assertNotIn("D", text_values)
+        self.assertNotIn("E", text_values)
         self.assertIn("Kerf offset = D.E / 40", text_values)
         self.assertEqual(len(cut_lines), int(params.piece_count) - 1)
         self.assertGreaterEqual(len(mark_lines), int(params.scale_units) + int(params.vernier_divisions) + 2)
+
+    def test_kerf_discard_bay_aligns_with_piece_grid(self):
+        params = ltg.KerfParams()
+        layout = ltg.kerf_layout(params)
+        drawing = ltg.generate_kerf(params)
+        cut_polylines = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline) and entity.layer == "CUT"]
+        cut_lines = [entity for entity in drawing.entities if isinstance(entity, ltg.Line) and entity.layer == "CUT"]
+
+        top_row = cut_polylines[1]
+        slide_channel = cut_polylines[2]
+        discard_bay = cut_polylines[3]
+
+        self.assertAlmostEqual(top_row.points[0][0], layout["track_x"])
+        self.assertAlmostEqual(top_row.points[1][0], layout["inner_right"])
+        self.assertAlmostEqual(slide_channel.points[1][0], layout["discard_x"])
+        self.assertAlmostEqual(discard_bay.points[0][0], layout["discard_x"])
+        self.assertAlmostEqual(discard_bay.points[1][0], layout["inner_right"])
+        self.assertAlmostEqual(
+            layout["discard_width"],
+            layout["discard_piece_count"] * layout["cell_width"],
+        )
+        self.assertTrue(
+            any(abs(line.start[0] - layout["discard_x"]) < 0.00001 for line in cut_lines),
+            "Discard boundary should align with a top-row piece boundary.",
+        )
 
 
 if __name__ == "__main__":

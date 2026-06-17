@@ -10,7 +10,7 @@
     "vernier_divisions": 20.0,
     "piece_count": 20.0,
     "pass_count": 40.0,
-    "discard_width": 16.0,
+    "discard_piece_count": 3.0,
     "margin": 6.0,
     "track_height": 20.0,
     "slide_height": 7.0,

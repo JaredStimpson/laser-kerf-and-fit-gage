@@ -3,28 +3,28 @@
   <title>vernier-kerf-offset-test</title>
   <g fill="none" stroke-linecap="square" stroke-linejoin="miter">
     <path d="M 0 0 L 160 0 L 160 44 L 0 44 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 14 14 L 138 14 L 138 27 L 14 27 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 14 27 L 138 27 L 138 34 L 14 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <path d="M 138 27 L 154 27 L 154 34 L 138 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
-    <line x1="20.2" y1="14" x2="20.2" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="26.4" y1="14" x2="26.4" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="32.6" y1="14" x2="32.6" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="38.8" y1="14" x2="38.8" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="45" y1="14" x2="45" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="51.2" y1="14" x2="51.2" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="57.4" y1="14" x2="57.4" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="63.6" y1="14" x2="63.6" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="69.8" y1="14" x2="69.8" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="76" y1="14" x2="76" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="82.2" y1="14" x2="82.2" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="88.4" y1="14" x2="88.4" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="94.6" y1="14" x2="94.6" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="100.8" y1="14" x2="100.8" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="107" y1="14" x2="107" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="113.2" y1="14" x2="113.2" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="119.4" y1="14" x2="119.4" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="125.6" y1="14" x2="125.6" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
-    <line x1="131.8" y1="14" x2="131.8" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <path d="M 14 14 L 154 14 L 154 27 L 14 27 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
+    <path d="M 14 27 L 133 27 L 133 34 L 14 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
+    <path d="M 133 27 L 154 27 L 154 34 L 133 34 Z" stroke="#ff0000" stroke-width="0.1" data-layer="CUT" />
+    <line x1="21" y1="14" x2="21" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="28" y1="14" x2="28" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="35" y1="14" x2="35" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="42" y1="14" x2="42" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="49" y1="14" x2="49" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="56" y1="14" x2="56" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="63" y1="14" x2="63" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="70" y1="14" x2="70" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="77" y1="14" x2="77" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="84" y1="14" x2="84" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="91" y1="14" x2="91" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="98" y1="14" x2="98" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="105" y1="14" x2="105" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="112" y1="14" x2="112" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="119" y1="14" x2="119" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="126" y1="14" x2="126" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="133" y1="14" x2="133" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="140" y1="14" x2="140" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
+    <line x1="147" y1="14" x2="147" y2="27" stroke="#ff0000" stroke-width="0.08" data-layer="CUT" />
     <line x1="14" y1="14" x2="14" y2="9.8" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <text x="14" y="9.2" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">0</text>
     <line x1="16" y1="14" x2="16" y2="11.4" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
@@ -71,12 +71,10 @@
     <line x1="40.22" y1="34" x2="40.22" y2="37" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <line x1="41.6" y1="34" x2="41.6" y2="38.2" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <text x="41.6" y="40.4" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">20</text>
-    <line x1="14" y1="30.5" x2="133" y2="30.5" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
+    <line x1="14" y1="30.5" x2="128" y2="30.5" stroke="#000000" stroke-width="0.08" data-layer="MARK" />
     <text x="80" y="9" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">Vernier Kerf Offset Test</text>
     <text x="130" y="8" font-family="Arial, sans-serif" font-size="2" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">Kerf offset = D.E / 40</text>
-    <text x="12.2" y="20.5" font-family="Arial, sans-serif" font-size="3" text-anchor="end" fill="#000000" stroke="none" data-layer="MARK">D</text>
-    <text x="25.592" y="36.2" font-family="Arial, sans-serif" font-size="3" text-anchor="start" fill="#000000" stroke="none" data-layer="MARK">E</text>
-    <text x="76" y="31.55" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">SLIDE -&gt;</text>
-    <text x="146" y="31.55" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">DISCARD</text>
+    <text x="73.5" y="31.55" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">SLIDE -&gt;</text>
+    <text x="143.5" y="31.55" font-family="Arial, sans-serif" font-size="3" text-anchor="middle" fill="#000000" stroke="none" data-layer="MARK">DISCARD</text>
   </g>
 </svg>
