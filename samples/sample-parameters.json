@@ -19,11 +19,11 @@
     "include_labels": true
   },
   "fit": {
-    "nominal_tab_width": 20.0,
-    "tab_height": 24.0,
+    "nominal_pin_width": 20.0,
+    "material_thickness": 3.0,
+    "thickness_clearance": 0.1,
+    "shoulder_length": 24.0,
     "shoulder_width": 8.0,
-    "body_height": 28.0,
-    "slot_depth": 28.0,
     "allowance_start": -0.3,
     "allowance_stop": 0.3,
     "allowance_step": 0.1,

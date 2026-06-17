@@ -90,11 +90,11 @@ class KerfParams:
 
 @dataclass
 class FitParams:
-    nominal_tab_width: float = 20.0
-    tab_height: float = 24.0
+    nominal_pin_width: float = 20.0
+    material_thickness: float = 3.0
+    thickness_clearance: float = 0.10
+    shoulder_length: float = 24.0
     shoulder_width: float = 8.0
-    body_height: float = 28.0
-    slot_depth: float = 28.0
     allowance_start: float = -0.30
     allowance_stop: float = 0.30
     allowance_step: float = 0.10
@@ -124,17 +124,17 @@ KERF_FIELD_LABELS = {
 
 
 FIT_FIELD_LABELS = {
-    "nominal_tab_width": "Nominal tab width (mm)",
-    "tab_height": "Tab height (mm)",
+    "nominal_pin_width": "Nominal pin width (mm)",
+    "material_thickness": "Material thickness (mm)",
+    "thickness_clearance": "Thickness clearance (mm)",
+    "shoulder_length": "Shoulder length (mm)",
     "shoulder_width": "Shoulder width each side (mm)",
-    "body_height": "Coupon body height (mm)",
-    "slot_depth": "Slot depth (mm)",
-    "allowance_start": "Allowance start (mm)",
-    "allowance_stop": "Allowance stop (mm)",
-    "allowance_step": "Allowance step (mm)",
+    "allowance_start": "Controlled allowance start (mm)",
+    "allowance_stop": "Controlled allowance stop (mm)",
+    "allowance_step": "Controlled allowance step (mm)",
     "strip_height": "Strip height (mm)",
     "strip_margin": "Strip margin (mm)",
-    "slot_spacing": "Slot spacing (mm)",
+    "slot_spacing": "Hole spacing (mm)",
     "label_size": "Label text height (mm)",
     "include_labels": "Include engraved labels",
 }
@@ -163,9 +163,9 @@ KERF_ADVANCED_FIELDS = [
 
 
 FIT_GENERAL_FIELDS = [
-    "nominal_tab_width",
-    "tab_height",
-    "slot_depth",
+    "nominal_pin_width",
+    "material_thickness",
+    "thickness_clearance",
     "allowance_start",
     "allowance_stop",
     "allowance_step",
@@ -174,8 +174,8 @@ FIT_GENERAL_FIELDS = [
 
 
 FIT_ADVANCED_FIELDS = [
+    "shoulder_length",
     "shoulder_width",
-    "body_height",
     "strip_height",
     "strip_margin",
     "slot_spacing",
@@ -198,17 +198,17 @@ FIELD_HELP = {
     "label_size": "Height of the main engraved labels.",
     "tick_label_size": "Height of the small scale numbers.",
     "include_labels": "Turns engraved text and scale labels on or off.",
-    "nominal_tab_width": "Base tab width used by the fit allowance slots.",
-    "tab_height": "Height of the male coupon tab that enters each slot.",
-    "shoulder_width": "Width of each shoulder beside the male coupon tab.",
-    "body_height": "Height of the wider body below the male coupon tab.",
-    "slot_depth": "How deep each fit allowance slot is cut into the strip.",
-    "allowance_start": "Smallest fit allowance value in the slot series.",
-    "allowance_stop": "Largest fit allowance value in the slot series.",
-    "allowance_step": "Difference between neighboring fit allowance slots.",
+    "nominal_pin_width": "Visible width of the matching pin and the baseline vertical hole dimension.",
+    "material_thickness": "Actual material thickness. The matching pin uses this length unchanged.",
+    "thickness_clearance": "Added to material thickness to set the horizontal hole dimension.",
+    "shoulder_length": "Non-fitting shoulder/handle length behind the matching pin.",
+    "shoulder_width": "Extra material above and below the matching pin.",
+    "allowance_start": "Smallest vertical fit allowance added to nominal pin width.",
+    "allowance_stop": "Largest vertical fit allowance added to nominal pin width.",
+    "allowance_step": "Difference between neighboring vertical fit allowance holes.",
     "strip_height": "Height of the strip that contains all fit allowance slots.",
     "strip_margin": "Clear margin around the first and last fit slots.",
-    "slot_spacing": "Gap between neighboring fit allowance slots.",
+    "slot_spacing": "Gap between neighboring fit allowance holes.",
 }
 
 
@@ -450,63 +450,108 @@ def allowance_values(start: float, stop: float, step: float) -> list[float]:
     return values
 
 
-def generate_fit(params: FitParams) -> Drawing:
-    ensure_positive("Nominal tab width", params.nominal_tab_width)
-    ensure_positive("Tab height", params.tab_height)
+def fit_layout(params: FitParams) -> dict[str, Any]:
+    ensure_positive("Nominal pin width", params.nominal_pin_width)
+    ensure_positive("Material thickness", params.material_thickness)
+    ensure_positive("Shoulder length", params.shoulder_length)
     ensure_positive("Shoulder width", params.shoulder_width)
-    ensure_positive("Body height", params.body_height)
-    ensure_positive("Slot depth", params.slot_depth)
     ensure_positive("Strip height", params.strip_height)
     ensure_positive("Strip margin", params.strip_margin)
-    ensure_positive("Slot spacing", params.slot_spacing)
+    ensure_positive("Hole spacing", params.slot_spacing)
+    ensure_positive("Label text height", params.label_size)
+
+    hole_width = params.material_thickness + params.thickness_clearance
+    if hole_width <= 0:
+        raise ValueError("Material thickness plus clearance must be greater than zero.")
 
     values = allowance_values(params.allowance_start, params.allowance_stop, params.allowance_step)
-    slot_widths = [params.nominal_tab_width + value for value in values]
-    if any(width <= 0 for width in slot_widths):
-        raise ValueError("Allowance range creates a slot width of zero or less.")
-    if params.slot_depth >= params.strip_height:
-        raise ValueError("Slot depth must be smaller than strip height.")
+    hole_heights = [params.nominal_pin_width + value for value in values]
+    if any(height <= 0 for height in hole_heights):
+        raise ValueError("Allowance range creates a controlled hole dimension of zero or less.")
+    if max(hole_heights) >= params.strip_height:
+        raise ValueError("Strip height must be larger than the largest controlled hole dimension.")
 
-    max_slot_width = max(slot_widths)
-    slot_pitch = max_slot_width + params.slot_spacing
-    strip_width = params.strip_margin * 2 + max_slot_width + (len(values) - 1) * slot_pitch
-    slot_y = (params.strip_height - params.slot_depth) / 2
+    slot_pitch = hole_width + params.slot_spacing
+    strip_width = params.strip_margin * 2 + hole_width + (len(values) - 1) * slot_pitch
+    slots: list[dict[str, float]] = []
+    for index, (value, hole_height) in enumerate(zip(values, hole_heights)):
+        x = params.strip_margin + index * slot_pitch
+        y = (params.strip_height - hole_height) / 2
+        slots.append(
+            {
+                "x": x,
+                "y": y,
+                "width": hole_width,
+                "height": hole_height,
+                "allowance": value,
+            }
+        )
+
+    coupon_x = params.strip_margin
+    coupon_y = params.strip_height + params.label_size + 12.0
+    body_height = params.nominal_pin_width + 2 * params.shoulder_width
+    pin_x = coupon_x + params.shoulder_length
+    pin_y = coupon_y + params.shoulder_width
+    pin_length = params.material_thickness
+
+    return {
+        "values": values,
+        "hole_width": hole_width,
+        "hole_heights": hole_heights,
+        "slot_pitch": slot_pitch,
+        "strip_width": strip_width,
+        "slots": slots,
+        "coupon_x": coupon_x,
+        "coupon_y": coupon_y,
+        "body_height": body_height,
+        "pin_x": pin_x,
+        "pin_y": pin_y,
+        "pin_length": pin_length,
+        "pin_width": params.nominal_pin_width,
+        "coupon_width": params.shoulder_length + pin_length,
+        "coupon_height": body_height,
+    }
+
+
+def generate_fit(params: FitParams) -> Drawing:
+    layout = fit_layout(params)
+    strip_width = layout["strip_width"]
 
     entities: list[Entity] = [rect(0, 0, strip_width, params.strip_height)]
 
-    for index, (value, slot_width) in enumerate(zip(values, slot_widths)):
-        slot_center_x = params.strip_margin + max_slot_width / 2 + index * slot_pitch
-        slot_x = slot_center_x - slot_width / 2
-        entities.append(rect(slot_x, slot_y, slot_width, params.slot_depth))
+    for slot in layout["slots"]:
+        entities.append(rect(slot["x"], slot["y"], slot["width"], slot["height"]))
         if params.include_labels:
             entities.append(
                 Text(
-                    slot_center_x,
+                    slot["x"] + slot["width"] / 2,
                     params.strip_height + params.label_size + 2.0,
-                    f"{value:+.2f}",
+                    f"{slot['allowance']:+.2f}",
                     size=params.label_size,
                     layer="MARK",
                 )
             )
 
-    coupon_total_width = params.nominal_tab_width + 2 * params.shoulder_width
-    coupon_x = params.strip_margin
-    coupon_y = params.strip_height + params.label_size + 12.0
-    coupon_height = params.tab_height + params.body_height
-    shoulder_left = coupon_x + params.shoulder_width
-    shoulder_right = shoulder_left + params.nominal_tab_width
+    coupon_x = layout["coupon_x"]
+    coupon_y = layout["coupon_y"]
+    pin_x = layout["pin_x"]
+    pin_y = layout["pin_y"]
+    pin_right = pin_x + layout["pin_length"]
+    pin_bottom = pin_y + layout["pin_width"]
+    coupon_right = coupon_x + layout["coupon_width"]
+    coupon_bottom = coupon_y + layout["coupon_height"]
 
     entities.append(
         Polyline(
             [
-                (shoulder_left, coupon_y),
-                (shoulder_right, coupon_y),
-                (shoulder_right, coupon_y + params.tab_height),
-                (coupon_x + coupon_total_width, coupon_y + params.tab_height),
-                (coupon_x + coupon_total_width, coupon_y + coupon_height),
-                (coupon_x, coupon_y + coupon_height),
-                (coupon_x, coupon_y + params.tab_height),
-                (shoulder_left, coupon_y + params.tab_height),
+                (coupon_x, coupon_y),
+                (pin_x, coupon_y),
+                (pin_x, pin_y),
+                (pin_right, pin_y),
+                (pin_right, pin_bottom),
+                (pin_x, pin_bottom),
+                (pin_x, coupon_bottom),
+                (coupon_x, coupon_bottom),
             ],
             closed=True,
             layer="CUT",
@@ -517,8 +562,8 @@ def generate_fit(params: FitParams) -> Drawing:
         entities.extend(
             [
                 Text(
-                    coupon_x + coupon_total_width / 2,
-                    coupon_y + coupon_height + params.label_size + 2.0,
+                    coupon_x + layout["coupon_width"] / 2,
+                    coupon_y + layout["coupon_height"] + params.label_size + 2.0,
                     "matching coupon",
                     size=params.label_size,
                     layer="MARK",
@@ -526,7 +571,7 @@ def generate_fit(params: FitParams) -> Drawing:
                 Text(
                     strip_width / 2,
                     -3.0,
-                    "Fit allowance slots: slot width = nominal tab width + allowance",
+                    "Fit holes: vertical = nominal pin + allowance; horizontal = material + clearance",
                     size=params.label_size,
                     layer="MARK",
                 ),
@@ -1239,54 +1284,48 @@ def launch_gui() -> None:
             return
 
         if tool_name == "fit" and isinstance(params, FitParams):
-            values = allowance_values(params.allowance_start, params.allowance_stop, params.allowance_step)
-            slot_widths = [params.nominal_tab_width + value for value in values]
-            max_slot_width = max(slot_widths)
-            slot_pitch = max_slot_width + params.slot_spacing
-            strip_width = params.strip_margin * 2 + max_slot_width + (len(values) - 1) * slot_pitch
-            slot_y = (params.strip_height - params.slot_depth) / 2
-            first_center = params.strip_margin + max_slot_width / 2
-            first_slot_x = first_center - slot_widths[0] / 2
-            first_slot_right = first_slot_x + slot_widths[0]
-            coupon_total_width = params.nominal_tab_width + 2 * params.shoulder_width
-            coupon_x = params.strip_margin
-            coupon_y = params.strip_height + params.label_size + 12.0
-            tab_left = coupon_x + params.shoulder_width
-            tab_right = tab_left + params.nominal_tab_width
-            body_top = coupon_y + params.tab_height
-            coupon_bottom = coupon_y + params.tab_height + params.body_height
+            layout = fit_layout(params)
+            slots = layout["slots"]
+            first_slot = slots[0]
+            last_slot = slots[-1]
+            coupon_x = layout["coupon_x"]
+            coupon_y = layout["coupon_y"]
+            pin_x = layout["pin_x"]
+            pin_y = layout["pin_y"]
+            pin_right = pin_x + layout["pin_length"]
+            pin_bottom = pin_y + layout["pin_width"]
+            coupon_bottom = coupon_y + layout["coupon_height"]
 
-            if field_name == "nominal_tab_width":
-                line((tab_left, coupon_y - 2.0), (tab_right, coupon_y - 2.0), preferred="above")
-            elif field_name == "tab_height":
-                line((tab_right + 3.0, coupon_y), (tab_right + 3.0, body_top), preferred="right")
+            if field_name == "nominal_pin_width":
+                line((pin_right + 3.0, pin_y), (pin_right + 3.0, pin_bottom), preferred="right")
+            elif field_name == "material_thickness":
+                line((pin_x, pin_y - 2.0), (pin_right, pin_y - 2.0), preferred="above")
+            elif field_name == "thickness_clearance":
+                box(first_slot["x"], first_slot["y"], first_slot["width"], first_slot["height"], preferred="inside")
+            elif field_name == "shoulder_length":
+                line((coupon_x, coupon_y - 2.0), (pin_x, coupon_y - 2.0), preferred="above")
             elif field_name == "shoulder_width":
-                line((coupon_x, body_top + 3.0), (tab_left, body_top + 3.0), preferred="below")
-            elif field_name == "body_height":
-                line((coupon_x - 3.0, body_top), (coupon_x - 3.0, coupon_bottom), preferred="right")
-            elif field_name == "slot_depth":
-                line((first_slot_right + 3.0, slot_y), (first_slot_right + 3.0, slot_y + params.slot_depth), preferred="right")
+                line((pin_x - 3.0, coupon_y), (pin_x - 3.0, pin_y), preferred="left")
             elif field_name == "allowance_start":
-                box(first_slot_x, slot_y, slot_widths[0], params.slot_depth, preferred="inside")
+                box(first_slot["x"], first_slot["y"], first_slot["width"], first_slot["height"], preferred="inside")
             elif field_name == "allowance_stop":
-                last_center = params.strip_margin + max_slot_width / 2 + (len(values) - 1) * slot_pitch
-                last_width = slot_widths[-1]
-                box(last_center - last_width / 2, slot_y, last_width, params.slot_depth, preferred="inside")
-            elif field_name == "allowance_step" and len(values) > 1:
-                second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
+                box(last_slot["x"], last_slot["y"], last_slot["width"], last_slot["height"], preferred="inside")
+            elif field_name == "allowance_step" and len(slots) > 1:
+                first_center = first_slot["x"] + first_slot["width"] / 2
+                second_center = slots[1]["x"] + slots[1]["width"] / 2
                 line((first_center, params.strip_height + 7.0), (second_center, params.strip_height + 7.0), preferred="below")
             elif field_name == "strip_height":
-                line((strip_width + 3.0, 0), (strip_width + 3.0, params.strip_height), preferred="left")
+                line((layout["strip_width"] + 3.0, 0), (layout["strip_width"] + 3.0, params.strip_height), preferred="left")
             elif field_name == "strip_margin":
                 line((0, params.strip_height / 2), (params.strip_margin, params.strip_height / 2), preferred="below")
-            elif field_name == "slot_spacing" and len(values) > 1:
-                second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
-                second_slot_x = second_center - slot_widths[1] / 2
-                line((first_slot_right, slot_y - 3.0), (second_slot_x, slot_y - 3.0), preferred="above")
+            elif field_name == "slot_spacing" and len(slots) > 1:
+                first_right = first_slot["x"] + first_slot["width"]
+                second_left = slots[1]["x"]
+                line((first_right, first_slot["y"] - 3.0), (second_left, first_slot["y"] - 3.0), preferred="above")
             elif field_name == "label_size":
-                box(params.strip_margin, params.strip_height + 1.0, max_slot_width, params.label_size + 4.0, preferred="below")
+                box(params.strip_margin, params.strip_height + 1.0, layout["hole_width"], params.label_size + 4.0, preferred="below")
             elif field_name == "include_labels":
-                box(0, params.strip_height, strip_width, params.label_size + 8.0, preferred="inside")
+                box(0, params.strip_height, layout["strip_width"], params.label_size + 8.0, preferred="inside")
 
     app = LaserTesterApp()
     app.mainloop()

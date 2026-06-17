@@ -103,13 +103,16 @@ The default `/40` denominator is a ready-to-try starting point based on the Vern
 
 The fit allowance tester draws:
 
-- A long strip with slots
-- One matching stepped male coupon
+- A long strip with fit holes
+- One matching pin coupon
 
-Each slot width is:
+Each hole has two separate dimensions:
 
 ```text
-nominal tab width + allowance
+horizontal hole dimension = material thickness + thickness clearance
+vertical hole dimension = nominal pin width + controlled allowance
 ```
 
-The labels under the slots are allowance values in millimeters. Negative values make a tighter/interference fit. Positive values make a looser/clearance fit.
+The matching pin uses the material thickness and nominal pin width directly. Changing thickness clearance only changes the holes, not the pin.
+
+The labels under the holes are controlled allowance values in millimeters. Negative values make the vertical fit tighter. Positive values make it looser.
