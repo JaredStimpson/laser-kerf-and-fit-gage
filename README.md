@@ -14,6 +14,7 @@ Each tool screen has:
 - A live preview pane showing the geometry that will be generated
 - A `General` tab for the controls used most often
 - An `Advanced` tab for less-common placement, tick, label, and strip layout dimensions
+- Hover/focus help that highlights the dimension controlled by the active setting
 
 ## Windows Quick Start
 
@@ -62,8 +63,8 @@ SVG files use a millimeter viewBox and simple strokes. DXF files use basic R12-c
 
 Layers:
 
-- `CUT`: cut geometry
-- `MARK`: labels, scale ticks, and reference marks
+- `CUT`: red cut geometry
+- `MARK`: black score/text geometry, labels, scale ticks, and reference marks
 
 ## Parameter Files
 
@@ -83,17 +84,18 @@ Documents\Laser Tester Generator Exports
 
 ## Kerf Tester
 
-The kerf tester draws an outer reference plate with a rectangular coupon cutout and a fine gap scale near the cutout.
+The kerf tester draws a Vernier-style kerf offset finder. It has a row of loose sliding pieces, a lower slide channel, a right-hand `DISCARD` tab, a top `D` scale, and a bottom `E` vernier scale.
 
 Suggested use:
 
-1. Cut the tester with no intentional fit allowance.
-2. Remove the inner coupon.
-3. Slide the coupon against one side of its opening.
-4. Read the total gap on the engraved scale.
-5. Convert that reading into the kerf/cutter compensation value used by your laser workflow.
+1. Cut with your usual cut and score settings, with kerf offset disabled in the cutter settings.
+2. Remove the loose pieces and the piece marked `DISCARD`.
+3. Slide the loose pieces to the right.
+4. Read the largest whole number crossed by the `D` line on the top scale.
+5. Find the bottom `E` vernier line that best aligns with a border line.
+6. Use the printed equation, `Kerf offset = D.E / 40`, unless you changed the denominator setting.
 
-For a coupon cut from its matching opening, the visible total gap is usually twice the per-side kerf effect for that axis. Confirm with your machine, cut direction, and LightBurn compensation settings.
+The default `/40` denominator is a ready-to-try starting point based on the Vernier reference style. Confirm the result with your machine, material, cut direction, and LightBurn compensation settings.
 
 ## Fit Allowance Tester
 

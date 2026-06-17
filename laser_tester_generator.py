@@ -6,7 +6,7 @@ import json
 import math
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 
 APP_VERSION = "0.1.0"
@@ -72,19 +72,19 @@ class Drawing:
 
 @dataclass
 class KerfParams:
-    outer_width: float = 80.0
-    outer_height: float = 70.0
-    cutout_width: float = 52.0
-    cutout_height: float = 34.0
-    cutout_x: float = 10.0
-    cutout_y: float = 26.0
-    gap_scale_range: float = 2.0
-    gap_scale_increment: float = 0.1
-    major_tick_increment: float = 0.5
-    scale_offset: float = 4.0
-    minor_tick_length: float = 1.4
-    major_tick_length: float = 3.4
-    label_size: float = 2.2
+    plate_width: float = 160.0
+    plate_height: float = 44.0
+    scale_units: float = 15.0
+    scale_tick_spacing: float = 2.0
+    vernier_divisions: float = 20.0
+    piece_count: float = 20.0
+    pass_count: float = 40.0
+    discard_width: float = 16.0
+    margin: float = 6.0
+    track_height: float = 20.0
+    slide_height: float = 7.0
+    label_size: float = 3.0
+    tick_label_size: float = 2.0
     include_labels: bool = True
 
 
@@ -106,19 +106,19 @@ class FitParams:
 
 
 KERF_FIELD_LABELS = {
-    "outer_width": "Outer width (mm)",
-    "outer_height": "Outer height (mm)",
-    "cutout_width": "Cutout/coupon width (mm)",
-    "cutout_height": "Cutout/coupon height (mm)",
-    "cutout_x": "Cutout X from left (mm)",
-    "cutout_y": "Cutout Y from top (mm)",
-    "gap_scale_range": "Gap scale range (mm)",
-    "gap_scale_increment": "Gap tick increment (mm)",
-    "major_tick_increment": "Major tick increment (mm)",
-    "scale_offset": "Scale offset from cutout (mm)",
-    "minor_tick_length": "Minor tick length (mm)",
-    "major_tick_length": "Major tick length (mm)",
+    "plate_width": "Plate width (mm)",
+    "plate_height": "Plate height (mm)",
+    "scale_units": "D scale max value",
+    "scale_tick_spacing": "D tick spacing (mm)",
+    "vernier_divisions": "E vernier divisions",
+    "piece_count": "Sliding piece count",
+    "pass_count": "Equation denominator",
+    "discard_width": "Discard tab width (mm)",
+    "margin": "Outer margin (mm)",
+    "track_height": "Gauge track height (mm)",
+    "slide_height": "Slide channel height (mm)",
     "label_size": "Label text height (mm)",
+    "tick_label_size": "Scale text height (mm)",
     "include_labels": "Include engraved labels",
 }
 
@@ -141,24 +141,24 @@ FIT_FIELD_LABELS = {
 
 
 KERF_GENERAL_FIELDS = [
-    "outer_width",
-    "outer_height",
-    "cutout_width",
-    "cutout_height",
-    "gap_scale_range",
-    "gap_scale_increment",
+    "plate_width",
+    "plate_height",
+    "scale_units",
+    "vernier_divisions",
+    "piece_count",
+    "pass_count",
     "include_labels",
 ]
 
 
 KERF_ADVANCED_FIELDS = [
-    "cutout_x",
-    "cutout_y",
-    "major_tick_increment",
-    "scale_offset",
-    "minor_tick_length",
-    "major_tick_length",
+    "scale_tick_spacing",
+    "discard_width",
+    "margin",
+    "track_height",
+    "slide_height",
     "label_size",
+    "tick_label_size",
 ]
 
 
@@ -181,6 +181,35 @@ FIT_ADVANCED_FIELDS = [
     "slot_spacing",
     "label_size",
 ]
+
+
+FIELD_HELP = {
+    "plate_width": "Overall left-to-right size of the kerf finder plate.",
+    "plate_height": "Overall top-to-bottom size of the kerf finder plate.",
+    "scale_units": "Largest whole-number value printed on the top D scale.",
+    "scale_tick_spacing": "Physical spacing between neighboring whole-number D ticks.",
+    "vernier_divisions": "Number of bottom E scale divisions used to read the decimal digit.",
+    "piece_count": "Number of loose rectangular pieces that slide right after cutting.",
+    "pass_count": "Denominator printed in the offset equation. Default 40 matches the reference style.",
+    "discard_width": "Width of the right-hand piece marked DISCARD.",
+    "margin": "Clearance from the outer plate edge to the gauge track.",
+    "track_height": "Total vertical height used by the cut piece row and slide channel.",
+    "slide_height": "Height of the lower slide channel marked SLIDE.",
+    "label_size": "Height of the main engraved labels.",
+    "tick_label_size": "Height of the small scale numbers.",
+    "include_labels": "Turns engraved text and scale labels on or off.",
+    "nominal_tab_width": "Base tab width used by the fit allowance slots.",
+    "tab_height": "Height of the male coupon tab that enters each slot.",
+    "shoulder_width": "Width of each shoulder beside the male coupon tab.",
+    "body_height": "Height of the wider body below the male coupon tab.",
+    "slot_depth": "How deep each fit allowance slot is cut into the strip.",
+    "allowance_start": "Smallest fit allowance value in the slot series.",
+    "allowance_stop": "Largest fit allowance value in the slot series.",
+    "allowance_step": "Difference between neighboring fit allowance slots.",
+    "strip_height": "Height of the strip that contains all fit allowance slots.",
+    "strip_margin": "Clear margin around the first and last fit slots.",
+    "slot_spacing": "Gap between neighboring fit allowance slots.",
+}
 
 
 def rect(x: float, y: float, width: float, height: float, layer: str = "CUT") -> Polyline:
@@ -215,109 +244,187 @@ def is_major_tick(value: float, major_increment: float) -> bool:
     return abs(value - nearest) < 0.00001
 
 
-def generate_kerf(params: KerfParams) -> Drawing:
-    ensure_positive("Outer width", params.outer_width)
-    ensure_positive("Outer height", params.outer_height)
-    ensure_positive("Cutout width", params.cutout_width)
-    ensure_positive("Cutout height", params.cutout_height)
-    ensure_positive("Gap scale range", params.gap_scale_range)
-    ensure_positive("Gap tick increment", params.gap_scale_increment)
+def rounded_int(name: str, value: float, minimum: int = 1) -> int:
+    rounded = int(round(value))
+    if rounded < minimum:
+        raise ValueError(f"{name} must be at least {minimum}.")
+    return rounded
 
-    if params.cutout_x < 0 or params.cutout_y < 0:
-        raise ValueError("Cutout X and Y must be zero or greater.")
-    if params.cutout_x + params.cutout_width > params.outer_width:
-        raise ValueError("Cutout extends past the outer width.")
-    if params.cutout_y + params.cutout_height > params.outer_height:
-        raise ValueError("Cutout extends past the outer height.")
-    if params.cutout_y - params.gap_scale_range < 0:
-        raise ValueError("Cutout Y must leave room above it for the gap scale.")
+
+def kerf_layout(params: KerfParams) -> dict[str, float]:
+    ensure_positive("Plate width", params.plate_width)
+    ensure_positive("Plate height", params.plate_height)
+    ensure_positive("D scale max value", params.scale_units)
+    ensure_positive("D tick spacing", params.scale_tick_spacing)
+    ensure_positive("Equation denominator", params.pass_count)
+    ensure_positive("Discard tab width", params.discard_width)
+    ensure_positive("Outer margin", params.margin)
+    ensure_positive("Gauge track height", params.track_height)
+    ensure_positive("Slide channel height", params.slide_height)
+    ensure_positive("Label text height", params.label_size)
+    ensure_positive("Scale text height", params.tick_label_size)
+
+    scale_units = rounded_int("D scale max value", params.scale_units, minimum=5)
+    vernier_divisions = rounded_int("E vernier divisions", params.vernier_divisions, minimum=5)
+    piece_count = rounded_int("Sliding piece count", params.piece_count, minimum=4)
+    if params.slide_height >= params.track_height:
+        raise ValueError("Slide channel height must be smaller than gauge track height.")
+
+    track_x = params.margin + 8.0
+    track_y = max(params.margin + params.label_size + 5.0, params.margin + 8.0)
+    track_bottom = track_y + params.track_height
+    row_height = params.track_height - params.slide_height
+    row_bottom = track_y + row_height
+    plate_right = params.plate_width
+    plate_bottom = params.plate_height
+    inner_right = plate_right - params.margin
+    discard_x = inner_right - params.discard_width
+    gauge_width = discard_x - track_x
+    top_scale_end = track_x + scale_units * params.scale_tick_spacing
+    vernier_length = scale_units * params.scale_tick_spacing * 0.92
+
+    if track_bottom + 4.5 > plate_bottom - 0.5:
+        raise ValueError("Plate height is too small for the track, scales, and labels.")
+    if gauge_width < piece_count * 2.5:
+        raise ValueError("Plate width is too small for this piece count and discard width.")
+    if top_scale_end > discard_x - 2.0:
+        raise ValueError("D scale is too long for the plate. Reduce scale max or tick spacing.")
+
+    return {
+        "scale_units": float(scale_units),
+        "vernier_divisions": float(vernier_divisions),
+        "piece_count": float(piece_count),
+        "track_x": track_x,
+        "track_y": track_y,
+        "track_bottom": track_bottom,
+        "row_height": row_height,
+        "row_bottom": row_bottom,
+        "slide_bottom": track_bottom,
+        "inner_right": inner_right,
+        "discard_x": discard_x,
+        "gauge_width": gauge_width,
+        "cell_width": gauge_width / piece_count,
+        "top_scale_end": top_scale_end,
+        "vernier_length": vernier_length,
+    }
+
+
+def generate_kerf(params: KerfParams) -> Drawing:
+    layout = kerf_layout(params)
+    scale_units = int(layout["scale_units"])
+    vernier_divisions = int(layout["vernier_divisions"])
+    piece_count = int(layout["piece_count"])
+    track_x = layout["track_x"]
+    track_y = layout["track_y"]
+    row_bottom = layout["row_bottom"]
+    track_bottom = layout["track_bottom"]
+    discard_x = layout["discard_x"]
+    cell_width = layout["cell_width"]
 
     entities: list[Entity] = [
-        rect(0, 0, params.outer_width, params.outer_height),
-        rect(params.cutout_x, params.cutout_y, params.cutout_width, params.cutout_height),
+        rect(0, 0, params.plate_width, params.plate_height),
+        rect(track_x, track_y, discard_x - track_x, layout["row_height"]),
+        rect(track_x, row_bottom, discard_x - track_x, params.slide_height),
+        rect(discard_x, row_bottom, params.discard_width, params.slide_height),
     ]
 
-    ruler_x = params.cutout_x + params.cutout_width + params.scale_offset
-    if ruler_x + params.major_tick_length > params.outer_width:
-        ruler_x = params.cutout_x + params.cutout_width - params.scale_offset
-        tick_direction = -1.0
-    else:
-        tick_direction = 1.0
+    for index in range(1, piece_count):
+        x = track_x + index * cell_width
+        entities.append(Line((x, track_y), (x, row_bottom), layer="CUT"))
 
-    entities.append(
-        Line(
-            (ruler_x, params.cutout_y),
-            (ruler_x, params.cutout_y - params.gap_scale_range),
-            layer="MARK",
-        )
-    )
-
-    tick_count = int(math.floor(params.gap_scale_range / params.gap_scale_increment + 0.5))
-    for index in range(tick_count + 1):
-        value = round(index * params.gap_scale_increment, 6)
-        if value > params.gap_scale_range + 0.00001:
-            continue
-        y = params.cutout_y - value
-        major = is_major_tick(value, params.major_tick_increment) or index == 0
-        tick_length = params.major_tick_length if major else params.minor_tick_length
-        entities.append(
-            Line(
-                (ruler_x, y),
-                (ruler_x + tick_direction * tick_length, y),
-                layer="MARK",
-            )
-        )
+    for index in range(scale_units + 1):
+        x = track_x + index * params.scale_tick_spacing
+        major = index % 5 == 0
+        tick_top = track_y - (4.2 if major else 2.6)
+        entities.append(Line((x, track_y), (x, tick_top), layer="MARK"))
         if params.include_labels and major:
-            label_x = ruler_x + tick_direction * (tick_length + 3.0)
-            anchor = "start" if tick_direction > 0 else "end"
             entities.append(
                 Text(
-                    label_x,
-                    y + params.label_size * 0.35,
-                    f"{value:.1f}",
-                    size=params.label_size,
-                    anchor=anchor,
+                    x,
+                    tick_top - 0.6,
+                    str(index),
+                    size=params.tick_label_size,
                     layer="MARK",
                 )
             )
 
+    vernier_spacing = layout["vernier_length"] / vernier_divisions
+    for index in range(vernier_divisions + 1):
+        x = track_x + index * vernier_spacing
+        major = index % 5 == 0
+        tick_bottom = track_bottom + (4.2 if major else 3.0)
+        entities.append(Line((x, track_bottom), (x, tick_bottom), layer="MARK"))
+        if params.include_labels and major:
+            entities.append(
+                Text(
+                    x,
+                    tick_bottom + params.tick_label_size + 0.2,
+                    str(index),
+                    size=params.tick_label_size,
+                    layer="MARK",
+                )
+            )
+
+    entities.append(
+        Line(
+            (track_x, row_bottom + params.slide_height / 2),
+            (discard_x - 5.0, row_bottom + params.slide_height / 2),
+            layer="MARK",
+        )
+    )
+
     if params.include_labels:
+        pass_count = rounded_int("Equation denominator", params.pass_count, minimum=1)
         entities.extend(
             [
                 Text(
-                    params.outer_width / 2,
-                    -3.0,
-                    "Kerf gauge: slide coupon to one side, read total gap",
+                    params.plate_width / 2,
+                    params.margin + params.label_size,
+                    "Vernier Kerf Offset Test",
                     size=params.label_size,
                     layer="MARK",
                 ),
                 Text(
-                    params.outer_width + 8.0,
-                    params.outer_height / 2,
-                    f"{params.outer_height:g} mm reference",
+                    params.plate_width - params.margin - 24.0,
+                    params.margin + params.tick_label_size,
+                    f"Kerf offset = D.E / {pass_count}",
+                    size=params.tick_label_size,
+                    layer="MARK",
+                ),
+                Text(
+                    track_x - 1.8,
+                    track_y + layout["row_height"] / 2,
+                    "D",
+                    size=params.label_size,
+                    anchor="end",
+                    layer="MARK",
+                ),
+                Text(
+                    track_x + layout["vernier_length"] * 0.42,
+                    track_bottom + params.tick_label_size + 0.2,
+                    "E",
+                    size=params.label_size,
+                    anchor="start",
+                    layer="MARK",
+                ),
+                Text(
+                    (track_x + discard_x) / 2,
+                    row_bottom + params.slide_height / 2 + params.label_size * 0.35,
+                    "SLIDE ->",
                     size=params.label_size,
                     layer="MARK",
-                    rotation=90.0,
                 ),
-                Line(
-                    (params.outer_width + 3.0, 0),
-                    (params.outer_width + 3.0, params.outer_height),
-                    layer="MARK",
-                ),
-                Line(
-                    (params.outer_width + 1.5, 0),
-                    (params.outer_width + 4.5, 0),
-                    layer="MARK",
-                ),
-                Line(
-                    (params.outer_width + 1.5, params.outer_height),
-                    (params.outer_width + 4.5, params.outer_height),
+                Text(
+                    discard_x + params.discard_width / 2,
+                    row_bottom + params.slide_height / 2 + params.label_size * 0.35,
+                    "DISCARD",
+                    size=params.label_size,
                     layer="MARK",
                 ),
             ]
         )
 
-    return Drawing(entities, title="kerf-tester")
+    return Drawing(entities, title="vernier-kerf-offset-test")
 
 
 def allowance_values(start: float, stop: float, step: float) -> list[float]:
@@ -423,7 +530,7 @@ def generate_fit(params: FitParams) -> Drawing:
 
 
 def layer_color(layer: str) -> str:
-    return "#000000" if layer == "CUT" else "#777777"
+    return "#ff0000" if layer == "CUT" else "#000000"
 
 
 def svg_anchor(anchor: str) -> str:
@@ -527,7 +634,7 @@ def write_dxf(drawing: Drawing, path: Path) -> None:
     lines += dxf_pair(0, "ENDSEC")
     lines += dxf_pair(0, "SECTION") + dxf_pair(2, "TABLES")
     lines += dxf_pair(0, "TABLE") + dxf_pair(2, "LAYER") + dxf_pair(70, "2")
-    for layer_name, color in [("CUT", 1), ("MARK", 8)]:
+    for layer_name, color in [("CUT", 1), ("MARK", 7)]:
         lines += dxf_pair(0, "LAYER")
         lines += dxf_pair(2, layer_name)
         lines += dxf_pair(70, "0")
@@ -610,11 +717,14 @@ def launch_gui() -> None:
             labels: dict[str, str],
             general_fields: list[str],
             advanced_fields: list[str],
+            on_field_focus: Callable[[str | None], None],
         ) -> None:
             super().__init__(parent)
             self.cls = cls
             self.vars: dict[str, tk.Variable] = {}
             self.field_map = {field.name: field for field in fields(cls)}
+            self.on_field_focus = on_field_focus
+            self.focused_field: str | None = None
 
             tabs = ttk.Notebook(self)
             tabs.pack(fill="both", expand=True)
@@ -632,25 +742,51 @@ def launch_gui() -> None:
             for row, field_name in enumerate(field_names):
                 field = self.field_map[field_name]
                 label_text = labels.get(field.name, field.name)
-                ttk.Label(parent, text=label_text).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
+                label = ttk.Label(parent, text=label_text)
+                label.grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
+                self._bind_field_widget(label, field.name)
                 default_value = getattr(defaults, field.name)
                 if isinstance(default_value, bool):
                     var = tk.BooleanVar(value=default_value)
-                    ttk.Checkbutton(parent, variable=var, command=self._notify_changed).grid(
+                    control = ttk.Checkbutton(parent, variable=var, command=self._notify_changed)
+                    control.grid(
                         row=row,
                         column=1,
                         sticky="w",
                         pady=3,
                     )
+                    self._bind_field_widget(control, field.name)
                 else:
                     var = tk.StringVar(value=str(default_value))
                     entry = ttk.Entry(parent, textvariable=var, width=14)
                     entry.grid(row=row, column=1, sticky="ew", pady=3)
+                    self._bind_field_widget(entry, field.name)
                     entry.bind("<KeyRelease>", lambda _event: self._notify_changed())
-                    entry.bind("<Return>", lambda _event: self._notify_changed())
-                    entry.bind("<FocusOut>", lambda _event: self._notify_changed())
                 self.vars[field.name] = var
             parent.columnconfigure(1, weight=1)
+
+        def _bind_field_widget(self, widget: tk.Widget, field_name: str) -> None:
+            widget.bind("<Enter>", lambda _event, name=field_name: self._show_field(name), add="+")
+            widget.bind("<Leave>", lambda _event, name=field_name: self._leave_field(name), add="+")
+            widget.bind("<FocusIn>", lambda _event, name=field_name: self._focus_field(name), add="+")
+            widget.bind("<FocusOut>", lambda _event, name=field_name: self._blur_field(name), add="+")
+
+        def _show_field(self, field_name: str) -> None:
+            self.on_field_focus(field_name)
+
+        def _leave_field(self, field_name: str) -> None:
+            if self.focused_field != field_name:
+                self.on_field_focus(None)
+
+        def _focus_field(self, field_name: str) -> None:
+            self.focused_field = field_name
+            self.on_field_focus(field_name)
+
+        def _blur_field(self, field_name: str) -> None:
+            if self.focused_field == field_name:
+                self.focused_field = None
+            self._notify_changed()
+            self.on_field_focus(None)
 
         def _notify_changed(self) -> None:
             self.winfo_toplevel().event_generate("<<ParamsChanged>>")
@@ -693,7 +829,10 @@ def launch_gui() -> None:
 
             self.kerf_canvas: tk.Canvas
             self.fit_canvas: tk.Canvas
+            self.active_fields: dict[str, str | None] = {"kerf": None, "fit": None}
+            self.help_vars: dict[str, tk.StringVar] = {}
             self.kerf_form, self.kerf_canvas = self._build_tab(
+                "kerf",
                 "Kerf / Cutter Compensation",
                 KerfParams,
                 KERF_FIELD_LABELS,
@@ -701,6 +840,7 @@ def launch_gui() -> None:
                 KERF_ADVANCED_FIELDS,
             )
             self.fit_form, self.fit_canvas = self._build_tab(
+                "fit",
                 "Fit Allowance",
                 FitParams,
                 FIT_FIELD_LABELS,
@@ -714,6 +854,7 @@ def launch_gui() -> None:
 
         def _build_tab(
             self,
+            tool_name: str,
             title: str,
             cls: type[Any],
             labels: dict[str, str],
@@ -732,7 +873,14 @@ def launch_gui() -> None:
             paned.add(preview, weight=1)
 
             ttk.Label(controls, text=title, style="Title.TLabel").pack(anchor="w", pady=(0, 10))
-            form = ParameterForm(controls, cls, labels, general_fields, advanced_fields)
+            form = ParameterForm(
+                controls,
+                cls,
+                labels,
+                general_fields,
+                advanced_fields,
+                lambda field_name, name=tool_name: self.set_active_field(name, field_name),
+            )
             form.pack(fill="both", expand=True)
 
             button_grid = ttk.Frame(controls)
@@ -752,16 +900,33 @@ def launch_gui() -> None:
 
             ttk.Label(
                 controls,
-                text="CUT layer exports as black/red geometry. MARK layer exports as gray labels and tick marks.",
+                text="CUT layer exports as red geometry. MARK layer exports as black score/text geometry.",
                 wraplength=260,
                 foreground="#555555",
             ).pack(anchor="w", pady=(14, 0))
+            help_var = tk.StringVar(value="Hover or focus a setting to see the dimension it changes.")
+            self.help_vars[tool_name] = help_var
+            ttk.Label(
+                controls,
+                textvariable=help_var,
+                wraplength=280,
+                foreground="#333333",
+            ).pack(anchor="w", fill="x", pady=(10, 0))
 
             ttk.Label(preview, text="Preview", style="Title.TLabel").pack(anchor="w", pady=(0, 8))
             canvas = tk.Canvas(preview, bg="white", highlightthickness=1, highlightbackground="#c8c8c8")
             canvas.pack(fill="both", expand=True)
             canvas.bind("<Configure>", lambda _event: self.preview_active())
             return form, canvas
+
+        def set_active_field(self, tool_name: str, field_name: str | None) -> None:
+            self.active_fields[tool_name] = field_name
+            if field_name:
+                self.help_vars[tool_name].set(FIELD_HELP.get(field_name, "This setting changes the highlighted dimension."))
+            else:
+                self.help_vars[tool_name].set("Hover or focus a setting to see the dimension it changes.")
+            if tool_name == self.active_name():
+                self.preview_active()
 
         def active_name(self) -> str:
             return "kerf" if self.notebook.index(self.notebook.select()) == 0 else "fit"
@@ -776,10 +941,12 @@ def launch_gui() -> None:
             return generate_fit(fit)
 
         def preview_active(self) -> None:
-            canvas = self.kerf_canvas if self.active_name() == "kerf" else self.fit_canvas
+            active_name = self.active_name()
+            canvas = self.kerf_canvas if active_name == "kerf" else self.fit_canvas
             canvas.delete("all")
             try:
-                drawing = self.active_drawing()
+                kerf, fit = self.current_params()
+                drawing = generate_kerf(kerf) if active_name == "kerf" else generate_fit(fit)
             except Exception as exc:
                 canvas.create_text(
                     18,
@@ -791,7 +958,8 @@ def launch_gui() -> None:
                     width=max(canvas.winfo_width() - 36, 200),
                 )
                 return
-            draw_on_canvas(canvas, drawing)
+            params = kerf if active_name == "kerf" else fit
+            draw_on_canvas(canvas, drawing, active_name, params, self.active_fields[active_name])
 
         def export_active(self, filetype: str) -> None:
             try:
@@ -860,7 +1028,13 @@ def launch_gui() -> None:
             self.fit_form.set(fit)
             self.preview_active()
 
-    def draw_on_canvas(canvas: tk.Canvas, drawing: Drawing) -> None:
+    def draw_on_canvas(
+        canvas: tk.Canvas,
+        drawing: Drawing,
+        tool_name: str,
+        params: KerfParams | FitParams,
+        highlight_field: str | None,
+    ) -> None:
         canvas.update_idletasks()
         width = max(canvas.winfo_width(), 200)
         height = max(canvas.winfo_height(), 200)
@@ -877,7 +1051,7 @@ def launch_gui() -> None:
             return (point[0] * scale + offset_x, point[1] * scale + offset_y)
 
         for entity in drawing.entities:
-            color = "#111111" if entity.layer == "CUT" else "#777777"
+            color = "#ff0000" if entity.layer == "CUT" else "#111111"
             if isinstance(entity, Polyline):
                 points = entity.points[:]
                 if entity.closed and points:
@@ -914,6 +1088,133 @@ def launch_gui() -> None:
                         font=("Segoe UI", font_size),
                         anchor=anchor,
                     )
+
+        draw_dimension_highlight(canvas, tx, tool_name, params, highlight_field)
+
+    def draw_dimension_highlight(
+        canvas: tk.Canvas,
+        tx: Callable[[Point], Point],
+        tool_name: str,
+        params: KerfParams | FitParams,
+        field_name: str | None,
+    ) -> None:
+        if not field_name:
+            return
+
+        highlight = "#f59e0b"
+        label = KERF_FIELD_LABELS.get(field_name) if tool_name == "kerf" else FIT_FIELD_LABELS.get(field_name)
+        label = label or field_name
+
+        def line(start: Point, end: Point, text: str = label) -> None:
+            x1, y1 = tx(start)
+            x2, y2 = tx(end)
+            canvas.create_line(x1, y1, x2, y2, fill=highlight, width=2, arrow="both")
+            canvas.create_text(
+                (x1 + x2) / 2,
+                (y1 + y2) / 2 - 10,
+                text=text,
+                fill=highlight,
+                font=("Segoe UI", 10, "bold"),
+            )
+
+        def box(x: float, y: float, width: float, height: float, text: str = label) -> None:
+            x1, y1 = tx((x, y))
+            x2, y2 = tx((x + width, y + height))
+            canvas.create_rectangle(x1, y1, x2, y2, outline=highlight, width=2, dash=(4, 2))
+            canvas.create_text(
+                (x1 + x2) / 2,
+                min(y1, y2) - 10,
+                text=text,
+                fill=highlight,
+                font=("Segoe UI", 10, "bold"),
+            )
+
+        if tool_name == "kerf" and isinstance(params, KerfParams):
+            layout = kerf_layout(params)
+            track_x = layout["track_x"]
+            track_y = layout["track_y"]
+            row_bottom = layout["row_bottom"]
+            track_bottom = layout["track_bottom"]
+            discard_x = layout["discard_x"]
+            if field_name == "plate_width":
+                line((0, -2.5), (params.plate_width, -2.5))
+            elif field_name == "plate_height":
+                line((params.plate_width + 3.0, 0), (params.plate_width + 3.0, params.plate_height))
+            elif field_name == "scale_units":
+                line((track_x, track_y - 7.0), (layout["top_scale_end"], track_y - 7.0))
+            elif field_name == "scale_tick_spacing":
+                line((track_x, track_y - 6.0), (track_x + params.scale_tick_spacing, track_y - 6.0))
+            elif field_name == "vernier_divisions":
+                line((track_x, track_bottom + 7.0), (track_x + layout["vernier_length"], track_bottom + 7.0))
+            elif field_name == "piece_count":
+                box(track_x, track_y, discard_x - track_x, layout["row_height"])
+            elif field_name == "pass_count":
+                box(params.plate_width - params.margin - 50.0, params.margin - 1.0, 47.0, params.tick_label_size + 3.0)
+            elif field_name == "discard_width":
+                box(discard_x, row_bottom, params.discard_width, params.slide_height)
+            elif field_name == "margin":
+                line((0, params.plate_height / 2), (params.margin, params.plate_height / 2))
+            elif field_name == "track_height":
+                line((track_x - 5.0, track_y), (track_x - 5.0, track_bottom))
+            elif field_name == "slide_height":
+                line((discard_x - 3.0, row_bottom), (discard_x - 3.0, track_bottom))
+            elif field_name == "label_size":
+                box(params.plate_width / 2 - 32.0, params.margin, 64.0, params.label_size + 2.0)
+            elif field_name == "tick_label_size":
+                box(track_x - 3.0, track_y - 9.0, layout["top_scale_end"] - track_x + 6.0, params.tick_label_size + 4.0)
+            elif field_name == "include_labels":
+                box(track_x - 5.0, params.margin - 1.0, params.plate_width - track_x - params.margin + 4.0, track_bottom + 7.0)
+            return
+
+        if tool_name == "fit" and isinstance(params, FitParams):
+            values = allowance_values(params.allowance_start, params.allowance_stop, params.allowance_step)
+            slot_widths = [params.nominal_tab_width + value for value in values]
+            max_slot_width = max(slot_widths)
+            slot_pitch = max_slot_width + params.slot_spacing
+            strip_width = params.strip_margin * 2 + max_slot_width + (len(values) - 1) * slot_pitch
+            slot_y = (params.strip_height - params.slot_depth) / 2
+            first_center = params.strip_margin + max_slot_width / 2
+            first_slot_x = first_center - slot_widths[0] / 2
+            first_slot_right = first_slot_x + slot_widths[0]
+            coupon_total_width = params.nominal_tab_width + 2 * params.shoulder_width
+            coupon_x = params.strip_margin
+            coupon_y = params.strip_height + params.label_size + 12.0
+            tab_left = coupon_x + params.shoulder_width
+            tab_right = tab_left + params.nominal_tab_width
+            body_top = coupon_y + params.tab_height
+            coupon_bottom = coupon_y + params.tab_height + params.body_height
+
+            if field_name == "nominal_tab_width":
+                line((tab_left, coupon_y - 2.0), (tab_right, coupon_y - 2.0))
+            elif field_name == "tab_height":
+                line((tab_right + 3.0, coupon_y), (tab_right + 3.0, body_top))
+            elif field_name == "shoulder_width":
+                line((coupon_x, body_top + 3.0), (tab_left, body_top + 3.0))
+            elif field_name == "body_height":
+                line((coupon_x - 3.0, body_top), (coupon_x - 3.0, coupon_bottom))
+            elif field_name == "slot_depth":
+                line((first_slot_right + 3.0, slot_y), (first_slot_right + 3.0, slot_y + params.slot_depth))
+            elif field_name == "allowance_start":
+                box(first_slot_x, slot_y, slot_widths[0], params.slot_depth)
+            elif field_name == "allowance_stop":
+                last_center = params.strip_margin + max_slot_width / 2 + (len(values) - 1) * slot_pitch
+                last_width = slot_widths[-1]
+                box(last_center - last_width / 2, slot_y, last_width, params.slot_depth)
+            elif field_name == "allowance_step" and len(values) > 1:
+                second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
+                line((first_center, params.strip_height + 7.0), (second_center, params.strip_height + 7.0))
+            elif field_name == "strip_height":
+                line((strip_width + 3.0, 0), (strip_width + 3.0, params.strip_height))
+            elif field_name == "strip_margin":
+                line((0, params.strip_height / 2), (params.strip_margin, params.strip_height / 2))
+            elif field_name == "slot_spacing" and len(values) > 1:
+                second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
+                second_slot_x = second_center - slot_widths[1] / 2
+                line((first_slot_right, slot_y - 3.0), (second_slot_x, slot_y - 3.0))
+            elif field_name == "label_size":
+                box(params.strip_margin, params.strip_height + 1.0, max_slot_width, params.label_size + 4.0)
+            elif field_name == "include_labels":
+                box(0, params.strip_height, strip_width, params.label_size + 8.0)
 
     app = LaserTesterApp()
     app.mainloop()

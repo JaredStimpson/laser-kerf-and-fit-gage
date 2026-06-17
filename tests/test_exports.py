@@ -16,6 +16,8 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(len(fit_grouped), len(set(fit_grouped)))
         self.assertEqual({field.name for field in ltg.fields(ltg.KerfParams)}, set(kerf_grouped))
         self.assertEqual({field.name for field in ltg.fields(ltg.FitParams)}, set(fit_grouped))
+        self.assertTrue(set(kerf_grouped).issubset(ltg.FIELD_HELP))
+        self.assertTrue(set(fit_grouped).issubset(ltg.FIELD_HELP))
 
     def test_sample_exports_are_parseable(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -29,6 +31,9 @@ class ExportTests(unittest.TestCase):
 
             for svg in svg_files:
                 ET.parse(svg)
+                svg_text = svg.read_text(encoding="utf-8")
+                self.assertIn("#ff0000", svg_text)
+                self.assertIn("#000000", svg_text)
 
             for dxf in dxf_files:
                 text = dxf.read_text(encoding="utf-8")
@@ -54,15 +59,21 @@ class ExportTests(unittest.TestCase):
         widths = [round(poly.points[1][0] - poly.points[0][0], 4) for poly in slot_polylines]
         self.assertEqual(widths, [19.8, 20.0, 20.2])
 
-    def test_kerf_scale_tick_count_tracks_increment(self):
-        params = ltg.KerfParams(
-            gap_scale_range=1.0,
-            gap_scale_increment=0.25,
-            include_labels=False,
-        )
+    def test_kerf_uses_vernier_offset_labels(self):
+        params = ltg.KerfParams()
         drawing = ltg.generate_kerf(params)
+        text_values = [entity.text for entity in drawing.entities if isinstance(entity, ltg.Text)]
+        cut_lines = [entity for entity in drawing.entities if isinstance(entity, ltg.Line) and entity.layer == "CUT"]
         mark_lines = [entity for entity in drawing.entities if isinstance(entity, ltg.Line) and entity.layer == "MARK"]
-        self.assertEqual(len(mark_lines), 6)
+
+        self.assertIn("Vernier Kerf Offset Test", text_values)
+        self.assertIn("SLIDE ->", text_values)
+        self.assertIn("DISCARD", text_values)
+        self.assertIn("D", text_values)
+        self.assertIn("E", text_values)
+        self.assertIn("Kerf offset = D.E / 40", text_values)
+        self.assertEqual(len(cut_lines), int(params.piece_count) - 1)
+        self.assertGreaterEqual(len(mark_lines), int(params.scale_units) + int(params.vernier_divisions) + 2)
 
 
 if __name__ == "__main__":
