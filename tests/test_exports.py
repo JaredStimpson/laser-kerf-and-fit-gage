@@ -19,6 +19,19 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(set(kerf_grouped).issubset(ltg.FIELD_HELP))
         self.assertTrue(set(fit_grouped).issubset(ltg.FIELD_HELP))
 
+    def test_preview_label_position_stays_inside_canvas(self):
+        width = 120
+        height = 80
+        text_width = 90
+        text_height = 22
+
+        for x, y in [(-50, -50), (500, 500), (60, 40)]:
+            safe_x, safe_y = ltg.clamped_label_position(x, y, text_width, text_height, width, height)
+            self.assertGreaterEqual(safe_x - text_width / 2, 6)
+            self.assertGreaterEqual(safe_y - text_height / 2, 6)
+            self.assertLessEqual(safe_x + text_width / 2, width - 6)
+            self.assertLessEqual(safe_y + text_height / 2, height - 6)
+
     def test_sample_exports_are_parseable(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = Path(tmp)

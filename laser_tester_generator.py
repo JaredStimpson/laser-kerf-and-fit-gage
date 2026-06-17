@@ -705,6 +705,22 @@ def export_samples(directory: Path) -> None:
     save_params(directory / "sample-parameters.json", kerf, fit)
 
 
+def clamped_label_position(
+    x: float,
+    y: float,
+    text_width: float,
+    text_height: float,
+    canvas_width: float,
+    canvas_height: float,
+    margin: float = 6.0,
+) -> Point:
+    half_width = text_width / 2
+    half_height = text_height / 2
+    safe_x = min(max(x, half_width + margin), canvas_width - half_width - margin)
+    safe_y = min(max(y, half_height + margin), canvas_height - half_height - margin)
+    return safe_x, safe_y
+
+
 def launch_gui() -> None:
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
@@ -1041,7 +1057,7 @@ def launch_gui() -> None:
         min_x, min_y, max_x, max_y = drawing.bounds()
         drawing_width = max(max_x - min_x, 1.0)
         drawing_height = max(max_y - min_y, 1.0)
-        padding = 28.0
+        padding = 42.0 if highlight_field else 28.0
         scale = min((width - padding * 2) / drawing_width, (height - padding * 2) / drawing_height)
         scale = max(scale, 0.1)
         offset_x = (width - drawing_width * scale) / 2 - min_x * scale
@@ -1102,32 +1118,79 @@ def launch_gui() -> None:
             return
 
         highlight = "#f59e0b"
+        label_fill = "#fff7ed"
         label = KERF_FIELD_LABELS.get(field_name) if tool_name == "kerf" else FIT_FIELD_LABELS.get(field_name)
         label = label or field_name
 
-        def line(start: Point, end: Point, text: str = label) -> None:
+        def label_at(x: float, y: float, text: str, preferred: str = "above") -> None:
+            canvas_width = max(canvas.winfo_width(), 200)
+            canvas_height = max(canvas.winfo_height(), 200)
+            text_width = max(84, min(260, len(text) * 7 + 18))
+            text_height = 22
+            gap = 16
+
+            if preferred == "below":
+                y += gap
+            elif preferred == "left":
+                x -= text_width / 2 + gap
+            elif preferred == "right":
+                x += text_width / 2 + gap
+            elif preferred == "inside":
+                y += 2
+            else:
+                y -= gap
+
+            x, y = clamped_label_position(x, y, text_width, text_height, canvas_width, canvas_height)
+            half_width = text_width / 2
+            half_height = text_height / 2
+            canvas.create_rectangle(
+                x - half_width,
+                y - half_height,
+                x + half_width,
+                y + half_height,
+                fill=label_fill,
+                outline=highlight,
+                width=1,
+            )
+            canvas.create_text(
+                x,
+                y,
+                text=text,
+                fill="#9a5b00",
+                font=("Segoe UI", 9, "bold"),
+                width=text_width - 10,
+            )
+
+        def preferred_for_line(x1: float, y1: float, x2: float, y2: float) -> str:
+            canvas_width = max(canvas.winfo_width(), 200)
+            canvas_height = max(canvas.winfo_height(), 200)
+            if abs(x2 - x1) >= abs(y2 - y1):
+                return "below" if (y1 + y2) / 2 < 46 else "above"
+            return "left" if (x1 + x2) / 2 > canvas_width - 110 else "right"
+
+        def line(start: Point, end: Point, text: str = label, preferred: str | None = None) -> None:
             x1, y1 = tx(start)
             x2, y2 = tx(end)
             canvas.create_line(x1, y1, x2, y2, fill=highlight, width=2, arrow="both")
-            canvas.create_text(
-                (x1 + x2) / 2,
-                (y1 + y2) / 2 - 10,
-                text=text,
-                fill=highlight,
-                font=("Segoe UI", 10, "bold"),
-            )
+            label_at((x1 + x2) / 2, (y1 + y2) / 2, text, preferred or preferred_for_line(x1, y1, x2, y2))
 
-        def box(x: float, y: float, width: float, height: float, text: str = label) -> None:
+        def box(
+            x: float,
+            y: float,
+            width: float,
+            height: float,
+            text: str = label,
+            preferred: str = "above",
+        ) -> None:
             x1, y1 = tx((x, y))
             x2, y2 = tx((x + width, y + height))
             canvas.create_rectangle(x1, y1, x2, y2, outline=highlight, width=2, dash=(4, 2))
-            canvas.create_text(
-                (x1 + x2) / 2,
-                min(y1, y2) - 10,
-                text=text,
-                fill=highlight,
-                font=("Segoe UI", 10, "bold"),
-            )
+            top = min(y1, y2)
+            bottom = max(y1, y2)
+            label_anchor_y = top if preferred == "above" else bottom
+            if preferred == "inside":
+                label_anchor_y = top + 12
+            label_at((x1 + x2) / 2, label_anchor_y, text, preferred)
 
         if tool_name == "kerf" and isinstance(params, KerfParams):
             layout = kerf_layout(params)
@@ -1137,33 +1200,33 @@ def launch_gui() -> None:
             track_bottom = layout["track_bottom"]
             discard_x = layout["discard_x"]
             if field_name == "plate_width":
-                line((0, -2.5), (params.plate_width, -2.5))
+                line((0, -2.5), (params.plate_width, -2.5), preferred="below")
             elif field_name == "plate_height":
-                line((params.plate_width + 3.0, 0), (params.plate_width + 3.0, params.plate_height))
+                line((params.plate_width + 3.0, 0), (params.plate_width + 3.0, params.plate_height), preferred="left")
             elif field_name == "scale_units":
-                line((track_x, track_y - 7.0), (layout["top_scale_end"], track_y - 7.0))
+                line((track_x, track_y - 7.0), (layout["top_scale_end"], track_y - 7.0), preferred="above")
             elif field_name == "scale_tick_spacing":
-                line((track_x, track_y - 6.0), (track_x + params.scale_tick_spacing, track_y - 6.0))
+                line((track_x, track_y - 6.0), (track_x + params.scale_tick_spacing, track_y - 6.0), preferred="above")
             elif field_name == "vernier_divisions":
-                line((track_x, track_bottom + 7.0), (track_x + layout["vernier_length"], track_bottom + 7.0))
+                line((track_x, track_bottom + 7.0), (track_x + layout["vernier_length"], track_bottom + 7.0), preferred="above")
             elif field_name == "piece_count":
-                box(track_x, track_y, discard_x - track_x, layout["row_height"])
+                box(track_x, track_y, discard_x - track_x, layout["row_height"], preferred="inside")
             elif field_name == "pass_count":
-                box(params.plate_width - params.margin - 50.0, params.margin - 1.0, 47.0, params.tick_label_size + 3.0)
+                box(params.plate_width - params.margin - 50.0, params.margin - 1.0, 47.0, params.tick_label_size + 3.0, preferred="below")
             elif field_name == "discard_width":
-                box(discard_x, row_bottom, params.discard_width, params.slide_height)
+                box(discard_x, row_bottom, params.discard_width, params.slide_height, preferred="below")
             elif field_name == "margin":
-                line((0, params.plate_height / 2), (params.margin, params.plate_height / 2))
+                line((0, params.plate_height / 2), (params.margin, params.plate_height / 2), preferred="below")
             elif field_name == "track_height":
-                line((track_x - 5.0, track_y), (track_x - 5.0, track_bottom))
+                line((track_x - 5.0, track_y), (track_x - 5.0, track_bottom), preferred="right")
             elif field_name == "slide_height":
-                line((discard_x - 3.0, row_bottom), (discard_x - 3.0, track_bottom))
+                line((discard_x - 3.0, row_bottom), (discard_x - 3.0, track_bottom), preferred="left")
             elif field_name == "label_size":
-                box(params.plate_width / 2 - 32.0, params.margin, 64.0, params.label_size + 2.0)
+                box(params.plate_width / 2 - 32.0, params.margin, 64.0, params.label_size + 2.0, preferred="below")
             elif field_name == "tick_label_size":
-                box(track_x - 3.0, track_y - 9.0, layout["top_scale_end"] - track_x + 6.0, params.tick_label_size + 4.0)
+                box(track_x - 3.0, track_y - 9.0, layout["top_scale_end"] - track_x + 6.0, params.tick_label_size + 4.0, preferred="above")
             elif field_name == "include_labels":
-                box(track_x - 5.0, params.margin - 1.0, params.plate_width - track_x - params.margin + 4.0, track_bottom + 7.0)
+                box(track_x - 5.0, params.margin - 1.0, params.plate_width - track_x - params.margin + 4.0, track_bottom + 7.0, preferred="inside")
             return
 
         if tool_name == "fit" and isinstance(params, FitParams):
@@ -1185,36 +1248,36 @@ def launch_gui() -> None:
             coupon_bottom = coupon_y + params.tab_height + params.body_height
 
             if field_name == "nominal_tab_width":
-                line((tab_left, coupon_y - 2.0), (tab_right, coupon_y - 2.0))
+                line((tab_left, coupon_y - 2.0), (tab_right, coupon_y - 2.0), preferred="above")
             elif field_name == "tab_height":
-                line((tab_right + 3.0, coupon_y), (tab_right + 3.0, body_top))
+                line((tab_right + 3.0, coupon_y), (tab_right + 3.0, body_top), preferred="right")
             elif field_name == "shoulder_width":
-                line((coupon_x, body_top + 3.0), (tab_left, body_top + 3.0))
+                line((coupon_x, body_top + 3.0), (tab_left, body_top + 3.0), preferred="below")
             elif field_name == "body_height":
-                line((coupon_x - 3.0, body_top), (coupon_x - 3.0, coupon_bottom))
+                line((coupon_x - 3.0, body_top), (coupon_x - 3.0, coupon_bottom), preferred="right")
             elif field_name == "slot_depth":
-                line((first_slot_right + 3.0, slot_y), (first_slot_right + 3.0, slot_y + params.slot_depth))
+                line((first_slot_right + 3.0, slot_y), (first_slot_right + 3.0, slot_y + params.slot_depth), preferred="right")
             elif field_name == "allowance_start":
-                box(first_slot_x, slot_y, slot_widths[0], params.slot_depth)
+                box(first_slot_x, slot_y, slot_widths[0], params.slot_depth, preferred="inside")
             elif field_name == "allowance_stop":
                 last_center = params.strip_margin + max_slot_width / 2 + (len(values) - 1) * slot_pitch
                 last_width = slot_widths[-1]
-                box(last_center - last_width / 2, slot_y, last_width, params.slot_depth)
+                box(last_center - last_width / 2, slot_y, last_width, params.slot_depth, preferred="inside")
             elif field_name == "allowance_step" and len(values) > 1:
                 second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
-                line((first_center, params.strip_height + 7.0), (second_center, params.strip_height + 7.0))
+                line((first_center, params.strip_height + 7.0), (second_center, params.strip_height + 7.0), preferred="below")
             elif field_name == "strip_height":
-                line((strip_width + 3.0, 0), (strip_width + 3.0, params.strip_height))
+                line((strip_width + 3.0, 0), (strip_width + 3.0, params.strip_height), preferred="left")
             elif field_name == "strip_margin":
-                line((0, params.strip_height / 2), (params.strip_margin, params.strip_height / 2))
+                line((0, params.strip_height / 2), (params.strip_margin, params.strip_height / 2), preferred="below")
             elif field_name == "slot_spacing" and len(values) > 1:
                 second_center = params.strip_margin + max_slot_width / 2 + slot_pitch
                 second_slot_x = second_center - slot_widths[1] / 2
-                line((first_slot_right, slot_y - 3.0), (second_slot_x, slot_y - 3.0))
+                line((first_slot_right, slot_y - 3.0), (second_slot_x, slot_y - 3.0), preferred="above")
             elif field_name == "label_size":
-                box(params.strip_margin, params.strip_height + 1.0, max_slot_width, params.label_size + 4.0)
+                box(params.strip_margin, params.strip_height + 1.0, max_slot_width, params.label_size + 4.0, preferred="below")
             elif field_name == "include_labels":
-                box(0, params.strip_height, strip_width, params.label_size + 8.0)
+                box(0, params.strip_height, strip_width, params.label_size + 8.0, preferred="inside")
 
     app = LaserTesterApp()
     app.mainloop()
