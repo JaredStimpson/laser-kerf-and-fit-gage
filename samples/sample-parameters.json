@@ -19,17 +19,19 @@
     "include_labels": true
   },
   "fit": {
-    "nominal_pin_width": 20.0,
+    "fit_variable_center": 20.0,
+    "fit_variable_count": 7.0,
+    "use_step_resolution": false,
+    "fit_variable_min": 19.7,
+    "fit_variable_max": 20.3,
+    "fit_variable_step": 0.1,
     "material_thickness": 3.0,
     "thickness_clearance": 0.1,
+    "spacing_margin": 8.0,
     "shoulder_length": 24.0,
     "shoulder_width": 8.0,
-    "allowance_start": -0.3,
-    "allowance_stop": 0.3,
-    "allowance_step": 0.1,
-    "strip_height": 44.0,
-    "strip_margin": 10.0,
-    "slot_spacing": 16.0,
+    "overall_coupon_length": 0.0,
+    "overall_coupon_height": 0.0,
     "label_size": 2.4,
     "include_labels": true
   }

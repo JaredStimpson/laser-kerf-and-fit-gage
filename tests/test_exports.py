@@ -59,29 +59,41 @@ class ExportTests(unittest.TestCase):
             self.assertIn("kerf", payload)
             self.assertIn("fit", payload)
 
-    def test_fit_holes_split_material_thickness_from_controlled_dimension(self):
+    def test_fit_holes_use_n_range_and_put_labels_on_coupon(self):
         params = ltg.FitParams(
-            nominal_pin_width=20.0,
+            fit_variable_center=20.0,
+            fit_variable_count=5,
+            fit_variable_min=19.8,
+            fit_variable_max=20.2,
             material_thickness=3.0,
             thickness_clearance=0.2,
-            allowance_start=-0.2,
-            allowance_stop=0.2,
-            allowance_step=0.2,
-            include_labels=False,
         )
         layout = ltg.fit_layout(params)
         drawing = ltg.generate_fit(params)
-        slot_polylines = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline)][1:4]
+        slot_polylines = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline)][1:6]
         hole_widths = [round(poly.points[1][0] - poly.points[0][0], 4) for poly in slot_polylines]
         hole_heights = [round(poly.points[2][1] - poly.points[1][1], 4) for poly in slot_polylines]
-        coupon = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline)][4]
-        pin_length = round(max(point[0] for point in coupon.points) - layout["pin_x"], 4)
-        pin_width = round(layout["pin_width"], 4)
+        label_text = [entity.text for entity in drawing.entities if isinstance(entity, ltg.Text)]
 
-        self.assertEqual(hole_widths, [3.2, 3.2, 3.2])
-        self.assertEqual(hole_heights, [19.8, 20.0, 20.2])
-        self.assertEqual(pin_length, 3.0)
-        self.assertEqual(pin_width, 20.0)
+        self.assertEqual(hole_widths, [3.2, 3.2, 3.2, 3.2, 3.2])
+        self.assertEqual(hole_heights, [19.8, 19.9, 20.0, 20.1, 20.2])
+        self.assertEqual([round(value, 2) for value in layout["values"]], [19.8, 19.9, 20.0, 20.1, 20.2])
+        self.assertAlmostEqual(layout["coupon_length"], 5 * 3.2 + 6 * params.spacing_margin)
+        self.assertIn("19.80", label_text)
+        self.assertIn("20.20", label_text)
+        self.assertEqual(round(layout["pin_width"], 4), 20.0)
+
+    def test_fit_step_mode_centers_values_on_center_dimension(self):
+        params = ltg.FitParams(
+            fit_variable_center=20.0,
+            fit_variable_count=5,
+            use_step_resolution=True,
+            fit_variable_step=0.05,
+        )
+        self.assertEqual(
+            [round(value, 2) for value in ltg.fit_variable_values(params)],
+            [19.9, 19.95, 20.0, 20.05, 20.1],
+        )
 
     def test_kerf_uses_vernier_offset_labels(self):
         params = ltg.KerfParams()

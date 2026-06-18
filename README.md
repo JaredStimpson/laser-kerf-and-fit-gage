@@ -110,9 +110,9 @@ Each hole has two separate dimensions:
 
 ```text
 horizontal hole dimension = material thickness + thickness clearance
-vertical hole dimension = nominal pin width + controlled allowance
+vertical hole dimension = fit-variable dimension shown on the coupon
 ```
 
-The matching pin uses the material thickness and nominal pin width directly. Changing thickness clearance only changes the holes, not the pin.
+The fit-variable dimensions are generated from `N fit variable dimensions` using either min/max range mode or step-resolution mode around the center value. The matching pin uses the fit-variable center value directly. Changing thickness clearance only changes the holes, not the pin.
 
-The labels under the holes are controlled allowance values in millimeters. Negative values make the vertical fit tighter. Positive values make it looser.
+The size labels are engraved on the coupon under the holes. `Spacing margin` controls the margin around the holes and the gap between neighboring holes. Overall coupon length and height live in Advanced; leave them at `0` to auto-size from the hole count, material thickness clearance, spacing margin, and label area.
