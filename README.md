@@ -46,7 +46,7 @@ Run tests with:
 .\test.bat
 ```
 
-Generate sample SVG/DXF/JSON files without opening the GUI:
+Generate sample SVG/DXF/LBRN2/JSON files without opening the GUI:
 
 ```powershell
 .\run.bat --sample-dir samples
@@ -59,12 +59,22 @@ Each tester can export:
 - SVG
 - DXF
 
+The fit tester can also export:
+
+- LightBurn `.lbrn2`
+
 SVG files use a millimeter viewBox and simple strokes. DXF files use basic R12-compatible `LINE` and `TEXT` entities with `$INSUNITS` set to millimeters.
 
 Layers:
 
 - `CUT`: red cut geometry
 - `MARK`: black score/text geometry, labels, scale ticks, and reference marks
+- `OUTSIDE`: red outside contours for the fit tester
+- `HOLES`: red hole contours for the fit tester
+- `TEXT`: black fill text for the fit tester
+- `NUMBERS`: black fill size labels for the fit tester
+
+The fit tester's LightBurn export uses separate `OUTSIDE`, `HOLES`, `TEXT`, and `NUMBERS` levels. If you enter a known kerf in Advanced, `HOLES` are marked with inward kerf compensation and `OUTSIDE` contours are marked outward; text and numbers stay fill layers.
 
 ## Parameter Files
 
@@ -103,16 +113,19 @@ The default `/40` denominator is a ready-to-try starting point based on the Vern
 
 The fit allowance tester draws:
 
-- A long strip with fit holes
+- A grid strip with fit holes
 - One matching pin coupon
 
 Each hole has two separate dimensions:
 
 ```text
-horizontal hole dimension = material thickness + thickness clearance
+horizontal hole dimension = material-thickness dimension
 vertical hole dimension = fit-variable dimension shown on the coupon
 ```
 
-The fit-variable dimensions are generated from `N fit variable dimensions` using either min/max range mode or step-resolution mode around the center value. The matching pin uses the fit-variable center value directly. Changing thickness clearance only changes the holes, not the pin.
+The fit-variable dimensions run across the strip. The material-thickness dimensions run vertically, so the holes form a grid. For either direction, set `N`, a nominal center value, and either:
 
-The size labels are engraved on the coupon under the holes. `Spacing margin` controls the margin around the holes and the gap between neighboring holes. Overall coupon length and height live in Advanced; leave them at `0` to auto-size from the hole count, material thickness clearance, spacing margin, and label area.
+- `min` and `max`, with `step` left at `0`, or
+- `step`, which centers the values around the nominal value.
+
+The matching pin uses the fit-variable center and material nominal directly, and engraves that nominal size on the coupon, for example `20 x 3 [mm]`. The size labels are engraved on the coupon under the holes, with material row labels at the side. `Spacing margin` controls the margin around the holes and the gap between neighboring holes. Overall coupon length and height live in Advanced; leave them at `0` to auto-size from the hole counts, largest hole sizes, spacing, and label area.

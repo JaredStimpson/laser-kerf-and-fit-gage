@@ -4,12 +4,13 @@ import argparse
 import html
 import json
 import math
+import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 PARAM_DIR = Path.home() / "Documents" / "Laser Tester Generator Parameters"
 EXPORT_DIR = Path.home() / "Documents" / "Laser Tester Generator Exports"
 
@@ -92,17 +93,20 @@ class KerfParams:
 class FitParams:
     fit_variable_center: float = 20.0
     fit_variable_count: float = 7.0
-    use_step_resolution: bool = False
     fit_variable_min: float = 19.70
     fit_variable_max: float = 20.30
-    fit_variable_step: float = 0.10
+    fit_variable_step: float = 0.0
     material_thickness: float = 3.0
-    thickness_clearance: float = 0.10
+    material_count: float = 3.0
+    material_min: float = 2.90
+    material_max: float = 3.10
+    material_step: float = 0.0
     spacing_margin: float = 8.0
     shoulder_length: float = 24.0
     shoulder_width: float = 8.0
     overall_coupon_length: float = 0.0
     overall_coupon_height: float = 0.0
+    known_kerf: float = 0.0
     label_size: float = 2.4
     include_labels: bool = True
 
@@ -126,19 +130,22 @@ KERF_FIELD_LABELS = {
 
 
 FIT_FIELD_LABELS = {
-    "fit_variable_center": "Fit variable center value (mm)",
-    "fit_variable_count": "N fit variable dimensions",
-    "use_step_resolution": "Use step resolution",
-    "fit_variable_min": "Fit variable min (mm)",
-    "fit_variable_max": "Fit variable max (mm)",
-    "fit_variable_step": "Fit variable step (mm)",
-    "material_thickness": "Material thickness (mm)",
-    "thickness_clearance": "Thickness clearance (mm)",
+    "fit_variable_center": "Fit nominal (mm)",
+    "fit_variable_count": "Fit N",
+    "fit_variable_min": "Fit min (mm)",
+    "fit_variable_max": "Fit max (mm)",
+    "fit_variable_step": "Fit step (0 = auto)",
+    "material_thickness": "Material nominal (mm)",
+    "material_count": "Material N",
+    "material_min": "Material min (mm)",
+    "material_max": "Material max (mm)",
+    "material_step": "Material step (0 = auto)",
     "spacing_margin": "Spacing margin (mm)",
     "shoulder_length": "Shoulder length (mm)",
     "shoulder_width": "Shoulder width each side (mm)",
     "overall_coupon_length": "Overall coupon length (0 = auto)",
     "overall_coupon_height": "Overall coupon height (0 = auto)",
+    "known_kerf": "Known kerf for LightBurn (mm)",
     "label_size": "Label text height (mm)",
     "include_labels": "Include engraved labels",
 }
@@ -169,23 +176,26 @@ KERF_ADVANCED_FIELDS = [
 FIT_GENERAL_FIELDS = [
     "fit_variable_center",
     "fit_variable_count",
-    "use_step_resolution",
     "fit_variable_min",
     "fit_variable_max",
     "fit_variable_step",
     "material_thickness",
-    "thickness_clearance",
-    "spacing_margin",
-    "include_labels",
+    "material_count",
+    "material_min",
+    "material_max",
+    "material_step",
 ]
 
 
 FIT_ADVANCED_FIELDS = [
+    "spacing_margin",
     "shoulder_length",
     "shoulder_width",
     "overall_coupon_length",
     "overall_coupon_height",
+    "known_kerf",
     "label_size",
+    "include_labels",
 ]
 
 
@@ -204,19 +214,22 @@ FIELD_HELP = {
     "label_size": "Height of the main engraved labels.",
     "tick_label_size": "Height of the small scale numbers.",
     "include_labels": "Turns engraved text and scale labels on or off.",
-    "fit_variable_center": "Visible width of the matching pin and the center value for fit-variable holes.",
-    "fit_variable_count": "Number of fit-variable holes to place in the coupon.",
-    "use_step_resolution": "Off uses min/max across N holes. On uses N holes spaced by the step around the center value.",
-    "fit_variable_min": "Smallest actual fit-variable hole dimension used in range mode.",
-    "fit_variable_max": "Largest actual fit-variable hole dimension used in range mode.",
-    "fit_variable_step": "Step between actual fit-variable dimensions in step mode.",
-    "material_thickness": "Actual material thickness. The matching pin uses this length unchanged.",
-    "thickness_clearance": "Added to material thickness to set the horizontal hole dimension.",
+    "fit_variable_center": "Visible width of the matching pin and the center value for vertical fit-variable holes.",
+    "fit_variable_count": "Number of fit-variable columns to place in the coupon.",
+    "fit_variable_min": "Smallest actual fit-variable hole dimension. Used when step is 0.",
+    "fit_variable_max": "Largest actual fit-variable hole dimension. Used when step is 0.",
+    "fit_variable_step": "Step between fit-variable dimensions. Use 0 to derive step from min/max.",
+    "material_thickness": "Nominal material thickness. The matching pin text uses this value.",
+    "material_count": "Number of material-thickness variants to place vertically.",
+    "material_min": "Smallest horizontal material-thickness hole dimension. Used when material step is 0.",
+    "material_max": "Largest horizontal material-thickness hole dimension. Used when material step is 0.",
+    "material_step": "Step between material dimensions. Use 0 to derive step from min/max.",
     "spacing_margin": "Margin around holes and spacing between neighboring holes.",
     "shoulder_length": "Non-fitting shoulder/handle length behind the matching pin.",
-    "shoulder_width": "Extra material above and below the matching pin.",
-    "overall_coupon_length": "Advanced override for coupon length. Leave 0 to auto-size from N, spacing, and material thickness.",
-    "overall_coupon_height": "Advanced override for coupon height. Leave 0 to auto-size from the largest fit-variable dimension.",
+    "shoulder_width": "Extra side material on each side of the matching pin.",
+    "overall_coupon_length": "Advanced override for coupon length. Leave 0 to auto-size from fit columns, material values, spacing, and labels.",
+    "overall_coupon_height": "Advanced override for coupon height. Leave 0 to auto-size from material rows, fit values, spacing, and labels.",
+    "known_kerf": "Used only for LightBurn export: holes offset inward, outside contours offset outward.",
 }
 
 
@@ -442,44 +455,58 @@ def generate_kerf(params: KerfParams) -> Drawing:
     return Drawing(entities, title="vernier-kerf-offset-test")
 
 
-def allowance_values(start: float, stop: float, step: float) -> list[float]:
-    ensure_positive("Allowance step", step)
-    if stop < start:
-        raise ValueError("Allowance stop must be greater than or equal to allowance start.")
-    values: list[float] = []
-    current = start
-    guard = 0
-    while current <= stop + step * 0.25:
-        values.append(round(current, 6))
-        current += step
-        guard += 1
-        if guard > 200:
-            raise ValueError("Too many allowance values. Increase the step or narrow the range.")
-    return values
+def dimension_values(
+    center: float,
+    count_value: float,
+    min_value: float,
+    max_value: float,
+    step_value: float,
+    label: str,
+) -> list[float]:
+    count = rounded_int(f"N {label} dimensions", count_value, minimum=1)
+    ensure_positive(f"{label} nominal", center)
+    if step_value < 0:
+        raise ValueError(f"{label} step must be zero or greater.")
+
+    if step_value > 0:
+        midpoint = (count - 1) / 2
+        values = [center + (index - midpoint) * step_value for index in range(count)]
+    else:
+        ensure_positive(f"{label} min", min_value)
+        ensure_positive(f"{label} max", max_value)
+        if max_value < min_value:
+            raise ValueError(f"{label} max must be greater than or equal to {label} min.")
+        if count == 1:
+            values = [center]
+        else:
+            step = (max_value - min_value) / (count - 1)
+            values = [min_value + index * step for index in range(count)]
+
+    if any(value <= 0 for value in values):
+        raise ValueError(f"{label} dimensions must all be greater than zero.")
+    return [round(value, 6) for value in values]
 
 
 def fit_variable_values(params: FitParams) -> list[float]:
-    count = rounded_int("N fit variable dimensions", params.fit_variable_count, minimum=1)
-    ensure_positive("Fit variable center value", params.fit_variable_center)
+    return dimension_values(
+        params.fit_variable_center,
+        params.fit_variable_count,
+        params.fit_variable_min,
+        params.fit_variable_max,
+        params.fit_variable_step,
+        "Fit variable",
+    )
 
-    if params.use_step_resolution:
-        ensure_positive("Fit variable step", params.fit_variable_step)
-        midpoint = (count - 1) / 2
-        values = [params.fit_variable_center + (index - midpoint) * params.fit_variable_step for index in range(count)]
-    else:
-        ensure_positive("Fit variable min", params.fit_variable_min)
-        ensure_positive("Fit variable max", params.fit_variable_max)
-        if params.fit_variable_max < params.fit_variable_min:
-            raise ValueError("Fit variable max must be greater than or equal to fit variable min.")
-        if count == 1:
-            values = [params.fit_variable_center]
-        else:
-            step = (params.fit_variable_max - params.fit_variable_min) / (count - 1)
-            values = [params.fit_variable_min + index * step for index in range(count)]
 
-    if any(value <= 0 for value in values):
-        raise ValueError("Fit variable dimensions must all be greater than zero.")
-    return [round(value, 6) for value in values]
+def material_values(params: FitParams) -> list[float]:
+    return dimension_values(
+        params.material_thickness,
+        params.material_count,
+        params.material_min,
+        params.material_max,
+        params.material_step,
+        "Material",
+    )
 
 
 def fit_layout(params: FitParams) -> dict[str, Any]:
@@ -489,63 +516,93 @@ def fit_layout(params: FitParams) -> dict[str, Any]:
     ensure_positive("Shoulder length", params.shoulder_length)
     ensure_positive("Shoulder width", params.shoulder_width)
     ensure_positive("Label text height", params.label_size)
+    if params.overall_coupon_length < 0:
+        raise ValueError("Overall coupon length must be zero or greater.")
+    if params.overall_coupon_height < 0:
+        raise ValueError("Overall coupon height must be zero or greater.")
+    if params.known_kerf < 0:
+        raise ValueError("Known kerf must be zero or greater.")
 
-    hole_width = params.material_thickness + params.thickness_clearance
-    if hole_width <= 0:
-        raise ValueError("Material thickness plus clearance must be greater than zero.")
+    fit_values = fit_variable_values(params)
+    mat_values = material_values(params)
+    max_hole_width = max(mat_values)
+    max_hole_height = max(fit_values)
+    label_band = params.label_size + 2.6 if params.include_labels else 0.0
+    row_label_band = params.label_size * 3.2 if params.include_labels else 0.0
+    cell_width = max_hole_width + params.spacing_margin
+    cell_height = max_hole_height + label_band + params.spacing_margin
 
-    values = fit_variable_values(params)
-    max_hole_height = max(values)
-    label_band = params.label_size + 2.0 if params.include_labels else 0.0
-    auto_coupon_height = max_hole_height + params.spacing_margin * 2 + label_band
+    auto_coupon_length = row_label_band + params.spacing_margin + len(fit_values) * cell_width
+    auto_coupon_height = params.spacing_margin + len(mat_values) * cell_height
     coupon_height = params.overall_coupon_height if params.overall_coupon_height > 0 else auto_coupon_height
     if coupon_height < auto_coupon_height:
-        raise ValueError("Overall coupon height is too small for the selected fit-variable dimensions and labels.")
+        raise ValueError("Overall coupon height is too small for the selected grid, spacing, and labels.")
 
-    auto_coupon_length = len(values) * hole_width + (len(values) + 1) * params.spacing_margin
     coupon_length = params.overall_coupon_length if params.overall_coupon_length > 0 else auto_coupon_length
     if coupon_length < auto_coupon_length:
-        raise ValueError("Overall coupon length is too small for N, material thickness clearance, and spacing margin.")
+        raise ValueError("Overall coupon length is too small for N, material dimensions, spacing, and labels.")
 
-    slot_pitch = hole_width + params.spacing_margin
     slots: list[dict[str, float]] = []
-    hole_area_top = params.spacing_margin
-    hole_area_height = max_hole_height
-    label_y = hole_area_top + hole_area_height + params.label_size + 0.5
-    for index, value in enumerate(values):
-        x = params.spacing_margin + index * slot_pitch
-        y = hole_area_top + (hole_area_height - value) / 2
-        slots.append(
-            {
-                "x": x,
-                "y": y,
-                "width": hole_width,
-                "height": value,
-                "label_y": label_y,
-                "fit_dimension": value,
-            }
-        )
+    row_labels: list[dict[str, float | str]] = []
+    grid_x = row_label_band + params.spacing_margin
+    grid_y = params.spacing_margin
+    for row_index, material_dimension in enumerate(mat_values):
+        row_top = grid_y + row_index * cell_height
+        label_y = row_top + max_hole_height + params.label_size + 0.6
+        row_center_y = row_top + max_hole_height / 2
+        if params.include_labels:
+            row_labels.append(
+                {
+                    "x": max(params.label_size, row_label_band - params.label_size * 0.45),
+                    "y": row_center_y + params.label_size * 0.35,
+                    "text": f"{material_dimension:.2f}",
+                }
+            )
+        for column_index, fit_dimension in enumerate(fit_values):
+            cell_x = grid_x + column_index * cell_width
+            x = cell_x + (max_hole_width - material_dimension) / 2
+            y = row_top + (max_hole_height - fit_dimension) / 2
+            slots.append(
+                {
+                    "x": x,
+                    "y": y,
+                    "width": material_dimension,
+                    "height": fit_dimension,
+                    "label_y": label_y,
+                    "fit_dimension": fit_dimension,
+                    "material_dimension": material_dimension,
+                    "row": float(row_index),
+                    "column": float(column_index),
+                }
+            )
 
     pin_width = params.fit_variable_center
     coupon_x = params.spacing_margin
     coupon_y = coupon_height + params.label_size + 12.0
     body_width = pin_width + 2 * params.shoulder_width
-    body_height = max(pin_width * 0.75, 16.0)
+    body_height = max(params.material_thickness * 4.0, 16.0)
     pin_x = coupon_x + params.shoulder_width
     pin_y = coupon_y
     body_y = coupon_y + params.shoulder_length
 
     return {
-        "values": values,
-        "hole_width": hole_width,
-        "hole_heights": values,
-        "slot_pitch": slot_pitch,
+        "values": fit_values,
+        "fit_values": fit_values,
+        "material_values": mat_values,
+        "hole_width": max_hole_width,
+        "hole_heights": fit_values,
+        "cell_width": cell_width,
+        "cell_height": cell_height,
+        "grid_x": grid_x,
+        "grid_y": grid_y,
+        "row_label_band": row_label_band,
         "strip_width": coupon_length,
         "coupon_length": coupon_length,
         "coupon_height": coupon_height,
         "auto_coupon_length": auto_coupon_length,
         "auto_coupon_height": auto_coupon_height,
         "slots": slots,
+        "row_labels": row_labels,
         "coupon_x": coupon_x,
         "coupon_y": coupon_y,
         "body_width": body_width,
@@ -565,10 +622,10 @@ def generate_fit(params: FitParams) -> Drawing:
     strip_width = layout["strip_width"]
     strip_height = layout["coupon_height"]
 
-    entities: list[Entity] = [rect(0, 0, strip_width, strip_height)]
+    entities: list[Entity] = [rect(0, 0, strip_width, strip_height, layer="OUTSIDE")]
 
     for slot in layout["slots"]:
-        entities.append(rect(slot["x"], slot["y"], slot["width"], slot["height"]))
+        entities.append(rect(slot["x"], slot["y"], slot["width"], slot["height"], layer="HOLES"))
         if params.include_labels:
             entities.append(
                 Text(
@@ -576,7 +633,20 @@ def generate_fit(params: FitParams) -> Drawing:
                     slot["label_y"],
                     f"{slot['fit_dimension']:.2f}",
                     size=params.label_size,
-                    layer="MARK",
+                    layer="NUMBERS",
+                )
+            )
+
+    if params.include_labels:
+        for row_label in layout["row_labels"]:
+            entities.append(
+                Text(
+                    float(row_label["x"]),
+                    float(row_label["y"]),
+                    str(row_label["text"]),
+                    size=params.label_size,
+                    layer="NUMBERS",
+                    anchor="end",
                 )
             )
 
@@ -602,7 +672,7 @@ def generate_fit(params: FitParams) -> Drawing:
                 (pin_x, body_y),
             ],
             closed=True,
-            layer="CUT",
+            layer="OUTSIDE",
         )
     )
 
@@ -611,17 +681,17 @@ def generate_fit(params: FitParams) -> Drawing:
             [
                 Text(
                     coupon_x + layout["body_width"] / 2,
-                    coupon_bottom + params.label_size + 2.0,
-                    "matching coupon",
+                    body_y + layout["body_height"] / 2 + params.label_size * 0.35,
+                    f"{mm(params.fit_variable_center)} x {mm(params.material_thickness)} [mm]",
                     size=params.label_size,
-                    layer="MARK",
+                    layer="NUMBERS",
                 ),
                 Text(
                     strip_width / 2,
                     -3.0,
-                    "Fit holes: vertical = shown label; horizontal = material + clearance",
+                    "Fit tester",
                     size=params.label_size,
-                    layer="MARK",
+                    layer="TEXT",
                 ),
             ]
         )
@@ -630,7 +700,76 @@ def generate_fit(params: FitParams) -> Drawing:
 
 
 def layer_color(layer: str) -> str:
-    return "#ff0000" if layer == "CUT" else "#000000"
+    return "#ff0000" if layer in {"CUT", "OUTSIDE", "HOLES"} else "#000000"
+
+
+def layer_sort_key(layer: str) -> tuple[int, str]:
+    order = {
+        "OUTSIDE": 0,
+        "HOLES": 1,
+        "TEXT": 2,
+        "NUMBERS": 3,
+        "CUT": 4,
+        "MARK": 5,
+    }
+    return (order.get(layer, 99), layer)
+
+
+def drawing_layers(drawing: Drawing) -> list[str]:
+    return sorted({entity.layer for entity in drawing.entities}, key=layer_sort_key)
+
+
+def dxf_layer_color(layer: str) -> int:
+    return 1 if layer in {"CUT", "OUTSIDE", "HOLES"} else 7
+
+
+def lightburn_layer_index(layer: str) -> int:
+    return {
+        "OUTSIDE": 0,
+        "HOLES": 1,
+        "TEXT": 2,
+        "NUMBERS": 3,
+        "CUT": 0,
+        "MARK": 2,
+    }.get(layer, 0)
+
+
+def lightburn_layer_settings(layer: str, kerf_offset: float) -> dict[str, str]:
+    if layer == "OUTSIDE":
+        return {
+            "name": "OUTSIDE",
+            "mode": "line",
+            "type": "Cut",
+            "color": "#ff0000",
+            "kerfOffset": mm(kerf_offset),
+            "kerfDirection": "out",
+        }
+    if layer == "HOLES":
+        return {
+            "name": "HOLES",
+            "mode": "line",
+            "type": "Cut",
+            "color": "#ff0000",
+            "kerfOffset": mm(kerf_offset),
+            "kerfDirection": "in",
+        }
+    if layer in {"TEXT", "NUMBERS", "MARK"}:
+        return {
+            "name": layer,
+            "mode": "fill",
+            "type": "Fill",
+            "color": "#000000",
+            "kerfOffset": "0",
+            "kerfDirection": "none",
+        }
+    return {
+        "name": layer,
+        "mode": "line",
+        "type": "Cut",
+        "color": layer_color(layer),
+        "kerfOffset": mm(kerf_offset),
+        "kerfDirection": "out",
+    }
 
 
 def svg_anchor(anchor: str) -> str:
@@ -733,12 +872,13 @@ def write_dxf(drawing: Drawing, path: Path) -> None:
     lines += dxf_pair(9, "$INSUNITS") + dxf_pair(70, "4")
     lines += dxf_pair(0, "ENDSEC")
     lines += dxf_pair(0, "SECTION") + dxf_pair(2, "TABLES")
-    lines += dxf_pair(0, "TABLE") + dxf_pair(2, "LAYER") + dxf_pair(70, "2")
-    for layer_name, color in [("CUT", 1), ("MARK", 7)]:
+    layers = drawing_layers(drawing)
+    lines += dxf_pair(0, "TABLE") + dxf_pair(2, "LAYER") + dxf_pair(70, len(layers))
+    for layer_name in layers:
         lines += dxf_pair(0, "LAYER")
         lines += dxf_pair(2, layer_name)
         lines += dxf_pair(70, "0")
-        lines += dxf_pair(62, color)
+        lines += dxf_pair(62, dxf_layer_color(layer_name))
         lines += dxf_pair(6, "CONTINUOUS")
     lines += dxf_pair(0, "ENDTAB")
     lines += dxf_pair(0, "ENDSEC")
@@ -759,6 +899,126 @@ def write_dxf(drawing: Drawing, path: Path) -> None:
     lines += dxf_pair(0, "ENDSEC") + dxf_pair(0, "EOF")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def lightburn_path_shape(parent: ET.Element, entity: Polyline | Line) -> None:
+    layer = entity.layer
+    if isinstance(entity, Line):
+        points = [entity.start, entity.end]
+        closed = False
+    else:
+        points = entity.points
+        closed = entity.closed
+
+    if not points:
+        return
+
+    shape = ET.SubElement(
+        parent,
+        "Shape",
+        {
+            "Type": "Path",
+            "CutIndex": str(lightburn_layer_index(layer)),
+            "Layer": layer,
+            "Closed": "True" if closed else "False",
+        },
+    )
+    ET.SubElement(shape, "XForm").text = "1 0 0 1 0 0"
+    vert_list = ET.SubElement(shape, "VertList")
+    for x, y in points:
+        ET.SubElement(vert_list, "V", {"vx": mm(x), "vy": mm(y)})
+    prim_list = ET.SubElement(shape, "PrimList")
+    segment_count = len(points) if closed else len(points) - 1
+    for index in range(segment_count):
+        ET.SubElement(
+            prim_list,
+            "P",
+            {
+                "T": "L",
+                "p0": str(index),
+                "p1": str((index + 1) % len(points)),
+            },
+        )
+
+
+def lightburn_text_shape(parent: ET.Element, entity: Text) -> None:
+    shape = ET.SubElement(
+        parent,
+        "Shape",
+        {
+            "Type": "Text",
+            "CutIndex": str(lightburn_layer_index(entity.layer)),
+            "Layer": entity.layer,
+            "Str": entity.text,
+            "H": mm(entity.size),
+            "Align": entity.anchor,
+            "Rot": mm(entity.rotation),
+        },
+    )
+    ET.SubElement(shape, "XForm").text = f"1 0 0 1 {mm(entity.x)} {mm(entity.y)}"
+
+
+def indent_xml(element: ET.Element, level: int = 0) -> None:
+    space = "\n" + level * "  "
+    if len(element):
+        if not element.text or not element.text.strip():
+            element.text = space + "  "
+        for child in element:
+            indent_xml(child, level + 1)
+        if not child.tail or not child.tail.strip():
+            child.tail = space
+    if level and (not element.tail or not element.tail.strip()):
+        element.tail = space
+
+
+def write_lightburn_fit(drawing: Drawing, path: Path, kerf_offset: float = 0.0) -> None:
+    if kerf_offset < 0:
+        raise ValueError("Known kerf must be zero or greater.")
+
+    root = ET.Element(
+        "LightBurnProject",
+        {
+            "AppVersion": "LaserTesterGenerator",
+            "FormatVersion": "1",
+            "MaterialHeight": "0",
+            "MirrorX": "False",
+            "MirrorY": "False",
+            "Units": drawing.units,
+        },
+    )
+    layers = ["OUTSIDE", "HOLES", "TEXT", "NUMBERS"]
+    for index, layer in enumerate(layers):
+        settings = lightburn_layer_settings(layer, kerf_offset)
+        ET.SubElement(
+            root,
+            "CutSetting",
+            {
+                "index": str(index),
+                "name": settings["name"],
+                "type": settings["type"],
+                "mode": settings["mode"],
+                "color": settings["color"],
+                "kerfOffset": settings["kerfOffset"],
+                "kerfDirection": settings["kerfDirection"],
+                "priority": str(index),
+            },
+        )
+
+    metadata = ET.SubElement(root, "LayerMetadata")
+    for index, layer in enumerate(layers):
+        settings = lightburn_layer_settings(layer, kerf_offset)
+        ET.SubElement(metadata, "Layer", {"index": str(index), **settings})
+
+    for entity in drawing.entities:
+        if isinstance(entity, (Polyline, Line)):
+            lightburn_path_shape(root, entity)
+        elif isinstance(entity, Text):
+            lightburn_text_shape(root, entity)
+
+    indent_xml(root)
+    tree = ET.ElementTree(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
 def params_payload(kerf: KerfParams, fit: FitParams) -> dict[str, Any]:
@@ -800,8 +1060,10 @@ def export_samples(directory: Path) -> None:
     fit = FitParams()
     write_svg(generate_kerf(kerf), directory / "kerf-tester-sample.svg")
     write_dxf(generate_kerf(kerf), directory / "kerf-tester-sample.dxf")
-    write_svg(generate_fit(fit), directory / "fit-allowance-tester-sample.svg")
-    write_dxf(generate_fit(fit), directory / "fit-allowance-tester-sample.dxf")
+    fit_drawing = generate_fit(fit)
+    write_svg(fit_drawing, directory / "fit-allowance-tester-sample.svg")
+    write_dxf(fit_drawing, directory / "fit-allowance-tester-sample.dxf")
+    write_lightburn_fit(fit_drawing, directory / "fit-allowance-tester-sample.lbrn2", fit.known_kerf)
     save_params(directory / "sample-parameters.json", kerf, fit)
 
 
@@ -1008,6 +1270,8 @@ def launch_gui() -> None:
                 ("Save Params", self.save_active_params),
                 ("Load Params", self.load_params_file),
             ]
+            if tool_name == "fit":
+                buttons.insert(3, ("Export LBRN2", lambda: self.export_active("lbrn2")))
             for index, (label, command) in enumerate(buttons):
                 button = ttk.Button(button_grid, text=label, command=command)
                 button.grid(row=index // 2, column=index % 2, sticky="ew", padx=3, pady=3)
@@ -1016,7 +1280,7 @@ def launch_gui() -> None:
 
             ttk.Label(
                 controls,
-                text="CUT layer exports as red geometry. MARK layer exports as black score/text geometry.",
+                text="Cut geometry exports red. Text and numbers export black fill/score layers.",
                 wraplength=260,
                 foreground="#555555",
             ).pack(anchor="w", pady=(14, 0))
@@ -1079,9 +1343,14 @@ def launch_gui() -> None:
 
         def export_active(self, filetype: str) -> None:
             try:
-                drawing = self.active_drawing()
+                active_name = self.active_name()
+                kerf, fit = self.current_params()
+                drawing = generate_kerf(kerf) if active_name == "kerf" else generate_fit(fit)
             except Exception as exc:
                 messagebox.showerror("Invalid parameters", str(exc))
+                return
+            if filetype == "lbrn2" and active_name != "fit":
+                messagebox.showinfo("Fit only", "LightBurn LBRN2 export is available for the fit tester.")
                 return
 
             EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1098,8 +1367,10 @@ def launch_gui() -> None:
             try:
                 if filetype == "svg":
                     write_svg(drawing, path)
-                else:
+                elif filetype == "dxf":
                     write_dxf(drawing, path)
+                else:
+                    write_lightburn_fit(drawing, path, fit.known_kerf)
             except Exception as exc:
                 messagebox.showerror("Export failed", str(exc))
                 return
@@ -1167,7 +1438,7 @@ def launch_gui() -> None:
             return (point[0] * scale + offset_x, point[1] * scale + offset_y)
 
         for entity in drawing.entities:
-            color = "#ff0000" if entity.layer == "CUT" else "#111111"
+            color = "#ff0000" if entity.layer in {"CUT", "OUTSIDE", "HOLES"} else "#111111"
             if isinstance(entity, Polyline):
                 points = entity.points[:]
                 if entity.closed and points:
@@ -1176,7 +1447,7 @@ def launch_gui() -> None:
                 for point in points:
                     x, y = tx(point)
                     coords.extend([x, y])
-                canvas.create_line(*coords, fill=color, width=1.4 if entity.layer == "CUT" else 1.0)
+                canvas.create_line(*coords, fill=color, width=1.4 if entity.layer in {"CUT", "OUTSIDE", "HOLES"} else 1.0)
             elif isinstance(entity, Line):
                 x1, y1 = tx(entity.start)
                 x2, y2 = tx(entity.end)
@@ -1334,8 +1605,12 @@ def launch_gui() -> None:
         if tool_name == "fit" and isinstance(params, FitParams):
             layout = fit_layout(params)
             slots = layout["slots"]
+            fit_count = len(layout["fit_values"])
             first_slot = slots[0]
-            last_slot = slots[-1]
+            first_fit_row = slots[:fit_count]
+            first_material_column = slots[::fit_count]
+            last_fit_slot = first_fit_row[-1]
+            last_material_slot = first_material_column[-1]
             coupon_x = layout["coupon_x"]
             coupon_y = layout["coupon_y"]
             pin_x = layout["pin_x"]
@@ -1347,23 +1622,43 @@ def launch_gui() -> None:
             if field_name == "fit_variable_center":
                 line((pin_x, pin_y - 2.0), (pin_right, pin_y - 2.0), preferred="above")
             elif field_name == "fit_variable_count":
-                box(0, 0, layout["coupon_length"], layout["coupon_height"], preferred="inside")
+                box(
+                    first_fit_row[0]["x"],
+                    0,
+                    last_fit_slot["x"] + last_fit_slot["width"] - first_fit_row[0]["x"],
+                    layout["coupon_height"],
+                    preferred="inside",
+                )
             elif field_name == "fit_variable_min":
                 box(first_slot["x"], first_slot["y"], first_slot["width"], first_slot["height"], preferred="inside")
             elif field_name == "fit_variable_max":
-                box(last_slot["x"], last_slot["y"], last_slot["width"], last_slot["height"], preferred="inside")
-            elif field_name == "fit_variable_step" and len(slots) > 1:
+                box(last_fit_slot["x"], last_fit_slot["y"], last_fit_slot["width"], last_fit_slot["height"], preferred="inside")
+            elif field_name == "fit_variable_step" and len(first_fit_row) > 1:
                 line(
                     (first_slot["x"] + first_slot["width"] / 2, first_slot["label_y"] + 3.0),
-                    (slots[1]["x"] + slots[1]["width"] / 2, slots[1]["label_y"] + 3.0),
+                    (first_fit_row[1]["x"] + first_fit_row[1]["width"] / 2, first_fit_row[1]["label_y"] + 3.0),
                     preferred="below",
                 )
-            elif field_name == "use_step_resolution":
-                box(first_slot["x"], first_slot["y"], last_slot["x"] + last_slot["width"] - first_slot["x"], layout["coupon_height"] - first_slot["y"], preferred="inside")
             elif field_name == "material_thickness":
-                line((first_slot["x"], first_slot["y"] - 3.0), (first_slot["x"] + params.material_thickness, first_slot["y"] - 3.0), preferred="above")
-            elif field_name == "thickness_clearance":
+                line((first_slot["x"], first_slot["y"] - 3.0), (first_slot["x"] + first_slot["width"], first_slot["y"] - 3.0), preferred="above")
+            elif field_name == "material_count":
+                box(
+                    0,
+                    first_material_column[0]["y"],
+                    layout["coupon_length"],
+                    last_material_slot["y"] + last_material_slot["height"] - first_material_column[0]["y"],
+                    preferred="inside",
+                )
+            elif field_name == "material_min":
                 box(first_slot["x"], first_slot["y"], first_slot["width"], first_slot["height"], preferred="inside")
+            elif field_name == "material_max":
+                box(last_material_slot["x"], last_material_slot["y"], last_material_slot["width"], last_material_slot["height"], preferred="inside")
+            elif field_name == "material_step" and len(first_material_column) > 1:
+                line(
+                    (first_material_column[0]["x"] - 3.0, first_material_column[0]["y"] + first_material_column[0]["height"] / 2),
+                    (first_material_column[1]["x"] - 3.0, first_material_column[1]["y"] + first_material_column[1]["height"] / 2),
+                    preferred="left",
+                )
             elif field_name == "spacing_margin":
                 line((0, layout["coupon_height"] / 2), (params.spacing_margin, layout["coupon_height"] / 2), preferred="below")
             elif field_name == "shoulder_length":
@@ -1374,6 +1669,8 @@ def launch_gui() -> None:
                 line((0, -2.5), (layout["coupon_length"], -2.5), preferred="below")
             elif field_name == "overall_coupon_height":
                 line((layout["coupon_length"] + 3.0, 0), (layout["coupon_length"] + 3.0, layout["coupon_height"]), preferred="left")
+            elif field_name == "known_kerf":
+                box(0, 0, layout["coupon_length"], layout["coupon_height"], preferred="inside")
             elif field_name == "label_size":
                 box(first_slot["x"], first_slot["label_y"] - params.label_size, layout["hole_width"], params.label_size + 2.0, preferred="below")
             elif field_name == "include_labels":

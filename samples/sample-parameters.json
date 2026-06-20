@@ -1,6 +1,6 @@
 {
   "app": "laser-tester-generator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "units": "mm",
   "kerf": {
     "plate_width": 160.0,
@@ -21,17 +21,20 @@
   "fit": {
     "fit_variable_center": 20.0,
     "fit_variable_count": 7.0,
-    "use_step_resolution": false,
     "fit_variable_min": 19.7,
     "fit_variable_max": 20.3,
-    "fit_variable_step": 0.1,
+    "fit_variable_step": 0.0,
     "material_thickness": 3.0,
-    "thickness_clearance": 0.1,
+    "material_count": 3.0,
+    "material_min": 2.9,
+    "material_max": 3.1,
+    "material_step": 0.0,
     "spacing_margin": 8.0,
     "shoulder_length": 24.0,
     "shoulder_width": 8.0,
     "overall_coupon_length": 0.0,
     "overall_coupon_height": 0.0,
+    "known_kerf": 0.0,
     "label_size": 2.4,
     "include_labels": true
   }

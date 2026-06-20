@@ -39,8 +39,10 @@ class ExportTests(unittest.TestCase):
 
             svg_files = sorted(out_dir.glob("*.svg"))
             dxf_files = sorted(out_dir.glob("*.dxf"))
+            lbrn_files = sorted(out_dir.glob("*.lbrn2"))
             self.assertEqual(len(svg_files), 2)
             self.assertEqual(len(dxf_files), 2)
+            self.assertEqual(len(lbrn_files), 1)
 
             for svg in svg_files:
                 ET.parse(svg)
@@ -54,46 +56,89 @@ class ExportTests(unittest.TestCase):
                 self.assertIn("\nLINE\n", text)
                 self.assertTrue(text.rstrip().endswith("EOF"))
 
+            self.assertEqual(ET.parse(lbrn_files[0]).getroot().tag, "LightBurnProject")
+
             payload = json.loads((out_dir / "sample-parameters.json").read_text(encoding="utf-8"))
             self.assertEqual(payload["units"], "mm")
             self.assertIn("kerf", payload)
             self.assertIn("fit", payload)
 
-    def test_fit_holes_use_n_range_and_put_labels_on_coupon(self):
+    def test_fit_holes_use_independent_grid_values_and_on_part_labels(self):
         params = ltg.FitParams(
             fit_variable_center=20.0,
-            fit_variable_count=5,
+            fit_variable_count=3,
             fit_variable_min=19.8,
             fit_variable_max=20.2,
             material_thickness=3.0,
-            thickness_clearance=0.2,
+            material_count=2,
+            material_min=2.9,
+            material_max=3.1,
+            spacing_margin=5.0,
         )
         layout = ltg.fit_layout(params)
         drawing = ltg.generate_fit(params)
-        slot_polylines = [entity for entity in drawing.entities if isinstance(entity, ltg.Polyline)][1:6]
-        hole_widths = [round(poly.points[1][0] - poly.points[0][0], 4) for poly in slot_polylines]
-        hole_heights = [round(poly.points[2][1] - poly.points[1][1], 4) for poly in slot_polylines]
+        slot_polylines = [
+            entity
+            for entity in drawing.entities
+            if isinstance(entity, ltg.Polyline) and entity.layer == "HOLES"
+        ]
+        hole_widths = sorted({round(poly.points[1][0] - poly.points[0][0], 4) for poly in slot_polylines})
+        hole_heights = sorted({round(poly.points[2][1] - poly.points[1][1], 4) for poly in slot_polylines})
         label_text = [entity.text for entity in drawing.entities if isinstance(entity, ltg.Text)]
 
-        self.assertEqual(hole_widths, [3.2, 3.2, 3.2, 3.2, 3.2])
-        self.assertEqual(hole_heights, [19.8, 19.9, 20.0, 20.1, 20.2])
-        self.assertEqual([round(value, 2) for value in layout["values"]], [19.8, 19.9, 20.0, 20.1, 20.2])
-        self.assertAlmostEqual(layout["coupon_length"], 5 * 3.2 + 6 * params.spacing_margin)
+        self.assertEqual(len(slot_polylines), 6)
+        self.assertEqual(hole_widths, [2.9, 3.1])
+        self.assertEqual(hole_heights, [19.8, 20.0, 20.2])
+        self.assertEqual([round(value, 2) for value in layout["fit_values"]], [19.8, 20.0, 20.2])
+        self.assertEqual([round(value, 2) for value in layout["material_values"]], [2.9, 3.1])
+        self.assertAlmostEqual(
+            layout["coupon_length"],
+            params.label_size * 3.2 + params.spacing_margin + 3 * (3.1 + params.spacing_margin),
+        )
         self.assertIn("19.80", label_text)
         self.assertIn("20.20", label_text)
+        self.assertIn("2.90", label_text)
+        self.assertIn("3.10", label_text)
+        self.assertIn("20 x 3 [mm]", label_text)
         self.assertEqual(round(layout["pin_width"], 4), 20.0)
 
-    def test_fit_step_mode_centers_values_on_center_dimension(self):
+    def test_fit_step_inputs_center_values_on_nominals(self):
         params = ltg.FitParams(
             fit_variable_center=20.0,
             fit_variable_count=5,
-            use_step_resolution=True,
             fit_variable_step=0.05,
+            material_thickness=3.0,
+            material_count=3,
+            material_step=0.1,
         )
         self.assertEqual(
             [round(value, 2) for value in ltg.fit_variable_values(params)],
             [19.9, 19.95, 20.0, 20.05, 20.1],
         )
+        self.assertEqual(
+            [round(value, 2) for value in ltg.material_values(params)],
+            [2.9, 3.0, 3.1],
+        )
+
+    def test_lightburn_export_has_fit_layers_and_kerf_directions(self):
+        params = ltg.FitParams(known_kerf=0.075)
+        drawing = ltg.generate_fit(params)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "fit.lbrn2"
+            ltg.write_lightburn_fit(drawing, path, params.known_kerf)
+            root = ET.parse(path).getroot()
+
+        settings = {node.attrib["name"]: node.attrib for node in root.findall("CutSetting")}
+        self.assertEqual(settings["OUTSIDE"]["type"], "Cut")
+        self.assertEqual(settings["OUTSIDE"]["kerfDirection"], "out")
+        self.assertEqual(settings["OUTSIDE"]["kerfOffset"], "0.075")
+        self.assertEqual(settings["HOLES"]["type"], "Cut")
+        self.assertEqual(settings["HOLES"]["kerfDirection"], "in")
+        self.assertEqual(settings["HOLES"]["kerfOffset"], "0.075")
+        self.assertEqual(settings["TEXT"]["type"], "Fill")
+        self.assertEqual(settings["NUMBERS"]["mode"], "fill")
+        self.assertTrue(root.findall("Shape[@Layer='HOLES']"))
+        self.assertTrue(root.findall("Shape[@Layer='NUMBERS']"))
 
     def test_kerf_uses_vernier_offset_labels(self):
         params = ltg.KerfParams()

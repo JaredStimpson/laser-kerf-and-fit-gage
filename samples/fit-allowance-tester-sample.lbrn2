@@ -1,0 +1,444 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LightBurnProject AppVersion="LaserTesterGenerator" FormatVersion="1" MaterialHeight="0" MirrorX="False" MirrorY="False" Units="mm">
+  <CutSetting index="0" name="OUTSIDE" type="Cut" mode="line" color="#ff0000" kerfOffset="0" kerfDirection="out" priority="0" />
+  <CutSetting index="1" name="HOLES" type="Cut" mode="line" color="#ff0000" kerfOffset="0" kerfDirection="in" priority="1" />
+  <CutSetting index="2" name="TEXT" type="Fill" mode="fill" color="#000000" kerfOffset="0" kerfDirection="none" priority="2" />
+  <CutSetting index="3" name="NUMBERS" type="Fill" mode="fill" color="#000000" kerfOffset="0" kerfDirection="none" priority="3" />
+  <LayerMetadata>
+    <Layer index="0" name="OUTSIDE" mode="line" type="Cut" color="#ff0000" kerfOffset="0" kerfDirection="out" />
+    <Layer index="1" name="HOLES" mode="line" type="Cut" color="#ff0000" kerfOffset="0" kerfDirection="in" />
+    <Layer index="2" name="TEXT" mode="fill" type="Fill" color="#000000" kerfOffset="0" kerfDirection="none" />
+    <Layer index="3" name="NUMBERS" mode="fill" type="Fill" color="#000000" kerfOffset="0" kerfDirection="none" />
+  </LayerMetadata>
+  <Shape Type="Path" CutIndex="0" Layer="OUTSIDE" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="0" vy="0" />
+      <V vx="93.38" vy="0" />
+      <V vx="93.38" vy="107.9" />
+      <V vx="0" vy="107.9" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="15.78" vy="8.3" />
+      <V vx="18.68" vy="8.3" />
+      <V vx="18.68" vy="28" />
+      <V vx="15.78" vy="28" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.70" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 17.23 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="26.88" vy="8.25" />
+      <V vx="29.78" vy="8.25" />
+      <V vx="29.78" vy="28.05" />
+      <V vx="26.88" vy="28.05" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.80" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 28.33 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="37.98" vy="8.2" />
+      <V vx="40.88" vy="8.2" />
+      <V vx="40.88" vy="28.1" />
+      <V vx="37.98" vy="28.1" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.90" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 39.43 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="49.08" vy="8.15" />
+      <V vx="51.98" vy="8.15" />
+      <V vx="51.98" vy="28.15" />
+      <V vx="49.08" vy="28.15" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.00" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 50.53 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="60.18" vy="8.1" />
+      <V vx="63.08" vy="8.1" />
+      <V vx="63.08" vy="28.2" />
+      <V vx="60.18" vy="28.2" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.10" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 61.63 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="71.28" vy="8.05" />
+      <V vx="74.18" vy="8.05" />
+      <V vx="74.18" vy="28.25" />
+      <V vx="71.28" vy="28.25" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.20" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 72.73 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="82.38" vy="8" />
+      <V vx="85.28" vy="8" />
+      <V vx="85.28" vy="28.3" />
+      <V vx="82.38" vy="28.3" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.30" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 83.83 31.3</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="15.73" vy="41.6" />
+      <V vx="18.73" vy="41.6" />
+      <V vx="18.73" vy="61.3" />
+      <V vx="15.73" vy="61.3" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.70" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 17.23 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="26.83" vy="41.55" />
+      <V vx="29.83" vy="41.55" />
+      <V vx="29.83" vy="61.35" />
+      <V vx="26.83" vy="61.35" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.80" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 28.33 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="37.93" vy="41.5" />
+      <V vx="40.93" vy="41.5" />
+      <V vx="40.93" vy="61.4" />
+      <V vx="37.93" vy="61.4" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.90" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 39.43 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="49.03" vy="41.45" />
+      <V vx="52.03" vy="41.45" />
+      <V vx="52.03" vy="61.45" />
+      <V vx="49.03" vy="61.45" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.00" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 50.53 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="60.13" vy="41.4" />
+      <V vx="63.13" vy="41.4" />
+      <V vx="63.13" vy="61.5" />
+      <V vx="60.13" vy="61.5" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.10" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 61.63 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="71.23" vy="41.35" />
+      <V vx="74.23" vy="41.35" />
+      <V vx="74.23" vy="61.55" />
+      <V vx="71.23" vy="61.55" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.20" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 72.73 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="82.33" vy="41.3" />
+      <V vx="85.33" vy="41.3" />
+      <V vx="85.33" vy="61.6" />
+      <V vx="82.33" vy="61.6" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.30" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 83.83 64.6</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="15.68" vy="74.9" />
+      <V vx="18.78" vy="74.9" />
+      <V vx="18.78" vy="94.6" />
+      <V vx="15.68" vy="94.6" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.70" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 17.23 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="26.78" vy="74.85" />
+      <V vx="29.88" vy="74.85" />
+      <V vx="29.88" vy="94.65" />
+      <V vx="26.78" vy="94.65" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.80" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 28.33 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="37.88" vy="74.8" />
+      <V vx="40.98" vy="74.8" />
+      <V vx="40.98" vy="94.7" />
+      <V vx="37.88" vy="94.7" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="19.90" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 39.43 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="48.98" vy="74.75" />
+      <V vx="52.08" vy="74.75" />
+      <V vx="52.08" vy="94.75" />
+      <V vx="48.98" vy="94.75" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.00" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 50.53 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="60.08" vy="74.7" />
+      <V vx="63.18" vy="74.7" />
+      <V vx="63.18" vy="94.8" />
+      <V vx="60.08" vy="94.8" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.10" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 61.63 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="71.18" vy="74.65" />
+      <V vx="74.28" vy="74.65" />
+      <V vx="74.28" vy="94.85" />
+      <V vx="71.18" vy="94.85" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.20" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 72.73 97.9</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="1" Layer="HOLES" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="82.28" vy="74.6" />
+      <V vx="85.38" vy="74.6" />
+      <V vx="85.38" vy="94.9" />
+      <V vx="82.28" vy="94.9" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20.30" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 83.83 97.9</XForm>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="2.90" H="2.4" Align="end" Rot="0">
+    <XForm>1 0 0 1 6.6 18.99</XForm>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="3.00" H="2.4" Align="end" Rot="0">
+    <XForm>1 0 0 1 6.6 52.29</XForm>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="3.10" H="2.4" Align="end" Rot="0">
+    <XForm>1 0 0 1 6.6 85.59</XForm>
+  </Shape>
+  <Shape Type="Path" CutIndex="0" Layer="OUTSIDE" Closed="True">
+    <XForm>1 0 0 1 0 0</XForm>
+    <VertList>
+      <V vx="16" vy="122.3" />
+      <V vx="36" vy="122.3" />
+      <V vx="36" vy="146.3" />
+      <V vx="44" vy="146.3" />
+      <V vx="44" vy="162.3" />
+      <V vx="8" vy="162.3" />
+      <V vx="8" vy="146.3" />
+      <V vx="16" vy="146.3" />
+    </VertList>
+    <PrimList>
+      <P T="L" p0="0" p1="1" />
+      <P T="L" p0="1" p1="2" />
+      <P T="L" p0="2" p1="3" />
+      <P T="L" p0="3" p1="4" />
+      <P T="L" p0="4" p1="5" />
+      <P T="L" p0="5" p1="6" />
+      <P T="L" p0="6" p1="7" />
+      <P T="L" p0="7" p1="0" />
+    </PrimList>
+  </Shape>
+  <Shape Type="Text" CutIndex="3" Layer="NUMBERS" Str="20 x 3 [mm]" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 26 155.14</XForm>
+  </Shape>
+  <Shape Type="Text" CutIndex="2" Layer="TEXT" Str="Fit tester" H="2.4" Align="middle" Rot="0">
+    <XForm>1 0 0 1 46.69 -3</XForm>
+  </Shape>
+</LightBurnProject>
